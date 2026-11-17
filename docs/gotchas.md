@@ -4,11 +4,11 @@ Known quirks for Sips. Add new ones at the bottom: date, the symptom, the rule, 
 
 ## 2026-04 — Duplicated rating-recalc logic
 
-`lib/actions/admin.ts::deleteReview` originally had its own inline rating average that returned `0` when the last review was deleted, while the canonical `recalculateRating()` in `lib/actions/reviews.ts:13-18` correctly returned `null`. 
+`lib/actions/admin.ts::deleteReview` originally had its own inline rating average that returned `0` when the last review was deleted, while the then-canonical `recalculateRating()` in `lib/actions/reviews.ts` correctly returned `null`.
 
-**Rule:** Any rating-mutating path MUST produce `null` for zero reviews so the UI can distinguish "no data" from a literal 0 rating.
+**Rule:** Any rating-mutating path MUST produce `null` for zero reviews so the UI can distinguish "no data" from a literal 0 rating. Call `recalculateCafeRating()` from `lib/ratings.ts`; don't write another average.
 
-**Why DRY didn't fix it immediately:** `recalculateRating()` lives in a `"use server"` module — exporting it would turn it into a server action and mint a stray RPC endpoint. Proper fix is to extract to a non-action util (e.g. `lib/ratings.ts`) and re-import from both `reviews.ts` and `admin.ts`. Done in `lib/ratings.ts` (`recalculateCafeRating`); `admin.ts` uses it, `reviews.ts` still has its own copy until it switches over.
+**Fix:** the logic now lives once in `lib/ratings.ts` (`averageRating()` + `recalculateCafeRating()`: published reviews only, rounded to 0.5, zero reviews → `null`), and both `reviews.ts` and `admin.ts` import it. It's a plain module on purpose: exporting a helper from a `"use server"` file would turn it into a public Server Action endpoint.
 
 ## 2026-04 — CSP header invisible on first-hit curl
 

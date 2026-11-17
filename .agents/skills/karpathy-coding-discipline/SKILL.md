@@ -67,7 +67,7 @@ Apply these BEFORE you touch a file. Re-read mid-task if you notice yourself dri
 - After touching `lib/actions/*` — `npm run build` MUST pass. No exceptions.
 - After touching `app/**` — confirm the page renders at 375px AND 1280px. Mobile is not optional.
 - After touching auth or RLS — name the negative case you tested (unauth user gets blocked, allowlist rejects, etc.). Untested auth changes are P0 risk.
-- After touching `recalculateRating()` or any review mutation — confirm the zero-reviews case sets rating to `null`, not `0`.
+- After touching `recalculateCafeRating()` (`lib/ratings.ts`) or any review mutation — confirm the zero-reviews case sets rating to `null`, not `0`.
 - For Tester: a test that doesn't fail when the implementation is broken is not a test. Verify red-then-green.
 
 ---
