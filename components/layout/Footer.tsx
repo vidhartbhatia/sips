@@ -33,9 +33,8 @@ export default function Footer() {
             </h4>
             <nav className="mt-3 flex flex-col gap-2">
               {[
-                { href: "/map", label: "Map" },
                 { href: "/cafes", label: "Cafes" },
-                { href: "/want-to-go", label: "Want to Go" },
+                { href: "/about", label: "About" },
               ].map((link) => (
                 <Link
                   key={link.href}

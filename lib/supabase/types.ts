@@ -208,7 +208,13 @@ export type Database = {
         ];
       };
     };
-    Views: { [_ in never]: never };
+    Views: {
+      /** Published cafes with at least one published review (migration 009). */
+      listed_cafes: {
+        Row: Cafe;
+        Relationships: [];
+      };
+    };
     Functions: { [_ in never]: never };
   };
 };

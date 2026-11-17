@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/lib/actions/auth";
 
+// /map is kept as a route but unlinked until it becomes a "where we've been" tracker.
+// /want-to-go is private (admin-only, proxy.ts).
 const navLinks = [
-  { href: "/map", label: "Map" },
   { href: "/cafes", label: "Cafes" },
-  { href: "/want-to-go", label: "Want to Go" },
   { href: "/about", label: "About" },
 ];
 

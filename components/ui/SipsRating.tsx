@@ -31,7 +31,8 @@ export function SipsCup({ sips, size = 32, compact = false }: SipsCupProps) {
 
   // Color gets warmer/richer as rating increases
   const cupColors = ["#B8A090", "#C4935B", "#C4835B", "#C4735B", "#A85540"];
-  const cupColor = cupColors[Math.min(sips - 1, 4)];
+  // Cafe averages come in half points (4.5): colour by the whole score below.
+  const cupColor = cupColors[Math.min(Math.max(Math.floor(sips) - 1, 0), 4)];
   const annotColor = "#C4735B";
   const heartCount = Math.max(0, sips - 2);
   const showYum = sips === 5;
@@ -130,20 +131,27 @@ export function SipsCup({ sips, size = 32, compact = false }: SipsCupProps) {
    Shows number + emotional cue at small sizes
    ============================================ */
 
+/**
+ * Text for a score: whole scores 1–5, or a cafe average in half points ("4.5 sips").
+ * Anything else (null, 0, out of range) has no label.
+ */
+export function sipsLabel(sips: number | null | undefined): { text: string; extra?: string } | null {
+  if (sips === null || sips === undefined || !Number.isFinite(sips)) return null;
+  const halves = Math.round(sips * 2) / 2;
+  if (halves < 1 || halves > 5) return null;
+  const extras: Record<number, string> = { 1: "meh", 4: "\u2665", 5: "yum!" };
+  return { text: `${halves} ${halves === 1 ? "sip" : "sips"}`, extra: extras[halves] };
+}
+
 interface SipsLabelProps {
   sips: number;
   className?: string;
 }
 
 export function SipsLabel({ sips, className = "" }: SipsLabelProps) {
-  const labels: Record<number, { text: string; extra?: string }> = {
-    1: { text: "1 sip", extra: "meh" },
-    2: { text: "2 sips" },
-    3: { text: "3 sips" },
-    4: { text: "4 sips", extra: "\u2665" },
-    5: { text: "5 sips", extra: "yum!" },
-  };
-  const label = labels[sips] || labels[3];
+  const label = sipsLabel(sips);
+  // Never stand in a made-up score: no label for a missing or out-of-range value.
+  if (!label) return null;
 
   return (
     <span className={`font-heading text-terracotta ${className}`}>

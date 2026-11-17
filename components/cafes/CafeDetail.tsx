@@ -116,15 +116,17 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
           transition={{ delay: 0.2 }}
           className="mt-8 flex flex-wrap items-center gap-6"
         >
-          <div className="flex items-center gap-3">
-            <SipsCup sips={cafe.overall_rating ?? 0} size={64} />
-            <div>
-              <SipsLabel sips={cafe.overall_rating ?? 0} className="text-xl" />
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-espresso-muted">
-                overall
-              </p>
+          {cafe.overall_rating !== null && (
+            <div className="flex items-center gap-3">
+              <SipsCup sips={cafe.overall_rating} size={64} />
+              <div>
+                <SipsLabel sips={cafe.overall_rating} className="text-xl" />
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-espresso-muted">
+                  overall
+                </p>
+              </div>
             </div>
-          </div>
+          )}
           {cafe.vibe_tags && cafe.vibe_tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {cafe.vibe_tags.map((tag) => (
@@ -139,10 +141,10 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
           )}
         </motion.div>
 
-        <InkDivider className="my-10 text-espresso" />
-
         {/* Items */}
         {cafe.items && cafe.items.length > 0 && (
+          <>
+          <InkDivider className="my-10 text-espresso" />
           <motion.section variants={stagger} initial="hidden" animate="show">
             <h2 className="font-heading text-3xl text-espresso">
               What We Tried
@@ -179,6 +181,7 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
               ))}
             </div>
           </motion.section>
+          </>
         )}
 
         {/* Photos Gallery */}
@@ -211,10 +214,10 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
           </>
         )}
 
-        <InkDivider className="my-10 text-espresso" />
-
         {/* Reviews */}
         {cafe.reviews && cafe.reviews.length > 0 && (
+          <>
+          <InkDivider className="my-10 text-espresso" />
           <motion.section variants={stagger} initial="hidden" animate="show">
             <h2 className="font-heading text-3xl text-espresso">
               Our Visits
@@ -244,6 +247,7 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
               ))}
             </div>
           </motion.section>
+          </>
         )}
       </main>
       <Footer />

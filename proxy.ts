@@ -106,8 +106,8 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /admin routes
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  // Protect /admin and the private pages (want-to-go list, design references)
+  if (isPrivatePath(request.nextUrl.pathname)) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
@@ -129,6 +129,13 @@ export async function proxy(request: NextRequest) {
   }
 
   return applySecurityHeaders(supabaseResponse, csp);
+}
+
+/** Signed-in allowlisted authors only. Matches the path itself and anything below it. */
+const PRIVATE_PREFIXES = ["/admin", "/want-to-go", "/design-system", "/design-preview"];
+
+function isPrivatePath(pathname: string): boolean {
+  return PRIVATE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 function applySecurityHeaders(res: NextResponse, csp: string): NextResponse {

@@ -85,17 +85,18 @@ function withPhotoUrls<T extends { photo_url: string }>(photos: T[], urls: Signe
   });
 }
 
-export async function getCafes(opts?: {
-  status?: "published" | "draft";
-  limit?: number;
-}) {
+/**
+ * Public cafe lists and the cafe page read `listed_cafes` (migration 009): published cafes
+ * with at least one published review. A cafe with only drafts, or none, is never listed
+ * and its page 404s, for anon and for a signed-in admin alike.
+ */
+export async function getCafes(opts?: { limit?: number }) {
   const sb = await createClient();
   let query = sb
-    .from("cafes")
+    .from("listed_cafes")
     .select("*")
     .order("overall_rating", { ascending: false, nullsFirst: false });
 
-  query = query.eq("status", opts?.status ?? "published");
   if (opts?.limit) query = query.limit(opts.limit);
 
   const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls()]);
@@ -106,13 +107,13 @@ export async function getCafes(opts?: {
 export async function getCafeBySlug(slug: string) {
   const sb = await createClient();
   const { data: cafe, error } = await sb
-    .from("cafes")
+    .from("listed_cafes")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+    .maybeSingle();
 
-  if (error) return null;
+  if (error) console.error("getCafeBySlug: cafe query failed", error);
+  if (!cafe) return null;
 
   const { data: reviews, error: reviewsError } = await sb
     .from("reviews")
@@ -171,9 +172,8 @@ export async function getWantToGo() {
 export async function getCafesForMap() {
   const sb = await createClient();
   const query = sb
-    .from("cafes")
+    .from("listed_cafes")
     .select("id, name, slug, lat, lng, neighborhood, overall_rating, cover_photo_url, vibe_tags")
-    .eq("status", "published")
     .not("lat", "eq", 0);
 
   const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls()]);

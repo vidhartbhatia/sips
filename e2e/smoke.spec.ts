@@ -40,10 +40,9 @@ test.describe("public pages render", () => {
   }
 
   test("a cafe detail page renders", async ({ page }) => {
-    await page.goto("/cafes");
-    const firstCafe = page.getByRole("main").locator('a[href^="/cafes/"]').first();
-    await expect(firstCafe, "the cafes list is empty, so no detail page to test").toBeVisible();
-    const href = await firstCafe.getAttribute("href");
+    const hrefs = await listedCafeHrefs(page);
+    test.skip(hrefs.length === 0, "no reviewed cafes yet, so no detail page to test");
+    const href = hrefs[0];
     expect(href).toMatch(/^\/cafes\/[a-z0-9-]+$/);
 
     const errors = trackErrors(page);
@@ -80,6 +79,55 @@ test.describe("public pages render", () => {
     await expect(page.getByRole("button", { name: "Send magic link" })).toBeEnabled();
     expect(errors, errors.join("\n")).toEqual([]);
   });
+});
+
+test.describe("launch gating", () => {
+  test("cafes index shows only reviewed cafes or the empty state", async ({ page }) => {
+    const hrefs = await listedCafeHrefs(page);
+    if (hrefs.length === 0) {
+      await expect(page.getByText("First reviews soon.")).toBeVisible();
+      return;
+    }
+    for (const href of hrefs) {
+      await page.goto(href);
+      await expect(page.getByText(/visited \d{4}-\d{2}-\d{2}/).first(), `${href} has no published review`).toBeVisible();
+    }
+  });
+
+  test("home shows reviewed cafes or the empty state", async ({ page }) => {
+    await page.goto("/");
+    const cards = page.getByRole("main").locator('a[href^="/cafes/"]');
+    if ((await cards.count()) === 0) await expect(page.getByText("First reviews soon.")).toBeVisible();
+  });
+
+  test('no "3 sips" placeholder text anywhere', async ({ page }) => {
+    // A score label must match a real score shown by its cup. The old fallback rendered
+    // "3 sips" for unscored (0) or half-point (4.5) values.
+    const urls = ["/", "/cafes", ...(await listedCafeHrefs(page))];
+    for (const url of urls) {
+      await page.goto(url);
+      const cups = await page
+        .locator('[aria-label$="out of 5 sips"]')
+        .evaluateAll((els) => els.map((el) => Number.parseFloat(el.getAttribute("aria-label") ?? "")));
+      expect(cups.filter((n) => !(n >= 1 && n <= 5)), `${url} shows a cup for a missing score`).toEqual([]);
+      const labels = (await page.getByRole("main").innerText()).match(/\b\d(?:\.5)? sips?\b/g) ?? [];
+      for (const label of labels) {
+        expect(cups, `${url}: "${label}" has no matching cup`).toContain(Number.parseFloat(label));
+      }
+    }
+  });
+
+  test("the map is unlinked: no nav link or home CTA", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('a[href="/map"]')).toHaveCount(0);
+  });
+
+  for (const url of ["/want-to-go", "/design-system", "/design-preview"]) {
+    test(`${url} redirects to /login when logged out`, async ({ page }) => {
+      await page.goto(url);
+      await expect(page).toHaveURL(/\/login$/);
+    });
+  }
 });
 
 test.describe("security", () => {
@@ -137,6 +185,16 @@ test.describe("security", () => {
     }
   });
 });
+
+/** Detail-page links on /cafes, de-duplicated (a card may hold more than one link). */
+async function listedCafeHrefs(page: Page): Promise<string[]> {
+  await page.goto("/cafes");
+  const hrefs = await page
+    .getByRole("main")
+    .locator('a[href^="/cafes/"]')
+    .evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
+  return [...new Set(hrefs.filter((h) => /^\/cafes\/[a-z0-9-]+$/.test(h)))];
+}
 
 /**
  * First post in content/blog whose frontmatter has a `draft` key that isn't YAML boolean
