@@ -1,3 +1,4 @@
-# Known false positives (vendored Playwright docs: an example mock token). Format: fingerprint per line.
+# Known false positive: an example mock token in vendored Playwright docs.
+# Listed twice on purpose: history scans fingerprint with the commit, staged scans without.
 4e54e0b55d7c7d17b30d7fc8758e6f226a2387c3:.agents/skills/playwright-best-practices/advanced/authentication-flows.md:generic-api-key:54
 .agents/skills/playwright-best-practices/advanced/authentication-flows.md:generic-api-key:54

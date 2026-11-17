@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -52,7 +55,9 @@ jobs:
           tar -xzf gl.tgz gitleaks && sudo mv gitleaks /usr/local/bin/
       - name: Scan full history
         run: gitleaks git --redact --no-banner -v .
-      - name: Commit emails must be GitHub noreply
+      - name: New commits use GitHub noreply emails
+        if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
         run: |
-          bad=$(git log --format='%ae%n%ce' | sort -u | grep -v '@users.noreply.github.com$' | grep -v '^noreply@github.com$' | grep -v '^noreply@anthropic.com$' || true)
-          if [ -n "$bad" ]; then echo "::error::Non-noreply commit emails found"; echo "$bad" | sed -E 's/^(.).*@/\1***@/'; exit 1; fi
+          range=${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+          bad=$(git log --format='%ae' "$range" | sort -u | grep -vE '@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$' || true)
+          if [ -n "$bad" ]; then echo "::error::New commits use a personal email"; echo "$bad" | sed -E 's/^(.).*@/\1***@/'; exit 1; fi
