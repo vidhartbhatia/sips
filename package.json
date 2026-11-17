@@ -2,6 +2,7 @@
   "name": "sips",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Sips: a Seattle cafe journal (oursips.com). Next.js 16, React 19, Supabase.",
   "scripts": {
     "dev": "next dev",

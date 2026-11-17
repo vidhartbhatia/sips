@@ -143,5 +143,9 @@ welcome.
 
 ## License
 
-All rights reserved for now. The code may get an open-source license later. Reviews, posts and
-illustrations stay all rights reserved.
+The source code is [MIT](LICENSE). Site content is not: the cafe reviews, blog posts in
+`content/blog/`, photos, and the illustrations in `public/illustrations/` are © The Sips
+authors, all rights reserved, and may not be reused without permission.
+
+Four vendored agent skills keep their own upstream MIT licenses; see
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
