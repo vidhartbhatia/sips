@@ -30,19 +30,25 @@ export async function getCafeBySlug(slug: string) {
 
   if (error) return null;
 
-  const [{ data: reviews, error: reviewsError }, { data: items }, { data: photos }] = await Promise.all([
-    sb
-      .from("reviews")
-      .select("*, author:profiles(display_name)")
-      .eq("cafe_id", cafe.id)
-      .eq("status", "published")
-      .order("date_visited", { ascending: false }),
-    sb.from("items").select("*").eq("cafe_id", cafe.id),
-    sb.from("photos").select("*").eq("cafe_id", cafe.id),
-  ]);
+  const { data: reviews, error: reviewsError } = await sb
+    .from("reviews")
+    .select("*, author:profiles(display_name)")
+    .eq("cafe_id", cafe.id)
+    .eq("status", "published")
+    .order("date_visited", { ascending: false });
 
   // Don't let a failed reviews query (e.g. the author embed) look like "no reviews" silently.
   if (reviewsError) console.error("getCafeBySlug: reviews query failed", reviewsError);
+
+  // Only items and photos that belong to a published review. RLS enforces this too
+  // (migration 005); this is defence in depth.
+  const reviewIds = (reviews ?? []).map((r) => r.id);
+  if (reviewIds.length === 0) return { ...cafe, reviews: reviews ?? [], items: [], photos: [] };
+
+  const [{ data: items }, { data: photos }] = await Promise.all([
+    sb.from("items").select("*").eq("cafe_id", cafe.id).in("review_id", reviewIds),
+    sb.from("photos").select("*").eq("cafe_id", cafe.id).in("review_id", reviewIds),
+  ]);
 
   return { ...cafe, reviews: reviews ?? [], items: items ?? [], photos: photos ?? [] };
 }
