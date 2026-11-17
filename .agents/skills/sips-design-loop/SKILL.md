@@ -56,12 +56,15 @@ ask her first.
 
 ## Writing
 
-- **Blog posts:** use the `publish-post` skill. She can hand you a doc, notes or a voice-memo
-  transcript.
-- **Cafe reviews:** the fastest path is on her phone at oursips.com/admin/review/new, right at
-  the cafe. If she gives you notes instead, draft the fields (1–5 rating, drinks or food with
-  ratings, vibe tags, note) in her voice for her to paste. Don't submit reviews for her
-  without her OK.
+- **Stories (blog posts):** use the `publish-post` skill. She can hand you a doc, notes or a
+  voice-memo transcript. Stories stay MDX files in `content/blog/`.
+- **Cafe reviews:** she captures them on her phone at oursips.com/admin/capture, right at the
+  cafe: photos, cafe, drinks (scores optional), overall score, verdict, note. It saves a private
+  draft and opens its edit page, where she finishes and publishes it later (usually on her
+  laptop). Your part is the words: help her write the verdict (one line) and the story (1–4
+  short paragraphs) in her voice, which she pastes into the form. Photo guidance is in
+  `publish-post` ("Review photos"): window light, a 3:2 landscape hero first, drinks 4:5 at
+  about 45°, three or more photos. Don't submit or publish reviews for her without her OK.
 
 ## Shipping
 

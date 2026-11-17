@@ -11,10 +11,28 @@ Keep her voice: fix typos and structure, but don't rewrite her tone or opinions.
 ## 1. Decide what it is
 
 - **Blog post** (story, guide, roundup): an MDX file in `content/blog/`. Follow the steps below.
-- **Cafe review** (rating, drinks, one cafe): the web admin is the source of truth. Tell her to
-  use https://oursips.com/admin/review/new, signed in with magic link. Offer to turn her notes
-  into the form fields (rating 1–5, drinks/food items with ratings, vibe tags, note) so she can
-  paste them. Don't write to the database directly.
+- **Story** (a free-form post: a guide, a roundup, a longer piece about one place): an MDX file
+  in `content/blog/`. Follow the steps below and open a PR.
+- **Cafe review** (one visit: photos, drinks, scores, verdict): the web admin is the source of
+  truth. She captures it at https://oursips.com/admin/capture (signed in with the magic link or
+  the 6-digit code from the email). It always saves a private draft; she publishes it later
+  from the draft's edit page. Your part is the words: help her write the **verdict** (one line,
+  what she'd tell a friend) and the **note/story** (1–4 short paragraphs in her voice), and
+  turn her notes into the form fields (drink names, optional 1–5 scores, favourites, one-line
+  drink notes) for her to paste or confirm. Don't write to the database directly, and don't
+  invent scores: an unscored drink stays unscored until she scores it.
+  See "Review photos" below for what to shoot.
+
+## Review photos (for the capture form)
+
+- Window light. No flash, no filters.
+- **Hero:** landscape, framed for a 3:2 crop (the cafe, the counter, the table). Add it first:
+  the first photo becomes the visit's cover.
+- **Drinks:** portrait, framed for 4:5, shot from about 45°. Attach each to its drink in the
+  form ("Add a photo of it").
+- Aim for three or more photos per review.
+- Photos straight off the iPhone are fine (HEIC or large JPEG). The form shrinks each one before
+  upload. If a HEIC won't open in a desktop browser, use Safari or pick a JPEG.
 
 ## 2. Convert the draft
 
