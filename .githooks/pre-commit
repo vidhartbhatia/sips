@@ -21,7 +21,18 @@ bad=$(git diff --cached --name-only --diff-filter=ACR | grep -E '(^|/)\.env($|\.
 [ -n "$bad" ] && fail "these files must not be committed (env/secrets or images; use Supabase Storage):
 $bad"
 
-# 3. Secret scan of the staged changes.
+# 3. Personal info in added lines: real-looking emails and local home paths.
+#    Placeholders (example.com/.org, noreply, test, you@email.com) are allowed.
+added=$(git diff --cached -U0 --diff-filter=ACM -- . ':(exclude)package-lock.json' ':(exclude).agents/skills/playwright-best-practices/**' | grep -E '^\+[^+]' || true)
+emails=$(printf '%s\n' "$added" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' \
+  | grep -viE '@(example\.(com|org|net)|users\.noreply\.github\.com|noreply\.github\.com|anthropic\.com|email\.com|test\.com)$|^(noreply|no-reply|test|user[0-9]*|you|partner|someone)@' | sort -u)
+[ -n "$emails" ] && fail "possible personal email(s) in staged changes (this repo is public):
+$(printf '%s\n' "$emails" | sed -E 's/^(.).*@/\1***@/')
+   Use a placeholder like you@example.com."
+paths=$(printf '%s\n' "$added" | grep -oE '/(Users|home)/[A-Za-z0-9._-]+/' | sort -u)
+[ -n "$paths" ] && fail "local home path(s) in staged changes: $paths. Use relative paths."
+
+# 4. Secret scan of the staged changes.
 if ! command -v gitleaks >/dev/null 2>&1; then
   fail "gitleaks is not installed. Run: brew install gitleaks"
 fi
