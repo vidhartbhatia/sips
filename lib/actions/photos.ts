@@ -1,0 +1,63 @@
+"use server";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { uploadPhoto as storageUpload, deletePhoto as storageDelete } from "@/lib/storage";
+import { requireAuth } from "@/lib/auth";
+
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic"]);
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export async function uploadPhotoAction(formData: FormData) {
+  await requireAuth();
+
+  const file = formData.get("file");
+  const cafeSlug = formData.get("cafeSlug") as string;
+
+  if (!(file instanceof File) || !cafeSlug) {
+    return { error: "File and cafeSlug are required", url: null };
+  }
+
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return { error: "Only JPEG, PNG, WebP, and HEIC images are allowed", url: null };
+  }
+
+  if (file.size > MAX_SIZE) {
+    return { error: "File must be under 10 MB", url: null };
+  }
+
+  try {
+    const url = await storageUpload(file, cafeSlug);
+    return { error: null, url };
+  } catch (e) {
+    return { error: (e as Error).message, url: null };
+  }
+}
+
+export async function deletePhotoAction(photoId: string) {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  // Get the photo URL first
+  const { data: photo } = await supabase
+    .from("photos")
+    .select("photo_url")
+    .eq("id", photoId)
+    .single();
+
+  if (!photo) return { error: "Photo not found" };
+
+  // Delete from storage
+  try {
+    await storageDelete(photo.photo_url);
+  } catch {
+    // Storage delete failed — still remove DB record
+  }
+
+  // Delete DB record
+  const { error } = await supabase
+    .from("photos")
+    .delete()
+    .eq("id", photoId);
+
+  return { error: error?.message ?? null };
+}

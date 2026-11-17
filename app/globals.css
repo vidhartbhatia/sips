@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+:root {
+  /* Core */
+  --color-cream: #FFF8F0;
+  --color-stone: #F0EBE3;
+  --color-espresso: #2C2420;
+  --color-espresso-muted: #7A6E66;
+
+  /* Accents */
+  --color-terracotta: #C4735B;
+  --color-terracotta-dark: #A85D47;
+  --color-sage: #8BAA8F;
+  --color-ink: #3D5A80;
+  --color-pink: #E8B4B8;
+
+  /* Legacy aliases — kept only for tokens still in use */
+  --color-terracotta-light: #D4917D;
+  --color-sage-light: #A8C4AB;
+  --color-sage-dark: #6E8E72;
+  --color-pink-light: #F0CDD0;
+  --color-blue: var(--color-ink);
+  --color-blue-light: #9BBCC9;
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-terracotta: var(--color-terracotta);
+  --color-terracotta-light: var(--color-terracotta-light);
+  --color-terracotta-dark: var(--color-terracotta-dark);
+  --color-sage: var(--color-sage);
+  --color-sage-light: var(--color-sage-light);
+  --color-sage-dark: var(--color-sage-dark);
+  --color-pink: var(--color-pink);
+  --color-pink-light: var(--color-pink-light);
+  --color-blue: var(--color-blue);
+  --color-blue-light: var(--color-blue-light);
+
+  --color-stone: var(--color-stone);
+  --color-espresso: var(--color-espresso);
+  --color-espresso-muted: var(--color-espresso-muted);
+  --color-ink: var(--color-ink);
+
+  --font-heading: "Caveat", cursive;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-espresso);
+  font-family: var(--font-body);
+}
+
+/* Paper texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Sketchy underline for headings */
+.sketchy-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.sketchy-underline::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -4px;
+  height: 3px;
+  background: var(--color-terracotta);
+  opacity: 0.6;
+  border-radius: 2px;
+  transform: rotate(-0.5deg);
+}
+
+/* Hand-drawn border effect */
+.hand-drawn-border {
+  border: 2px solid var(--color-espresso);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-pink);
+  color: var(--color-espresso);
+}
+
+/* Mapbox popup overrides */
+.sips-popup .mapboxgl-popup-content {
+  background: var(--color-cream);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(44, 36, 32, 0.12);
+  border: 1px solid rgba(44, 36, 32, 0.08);
+}
+
+.sips-popup .mapboxgl-popup-tip {
+  border-top-color: var(--color-cream);
+}
+
+.sips-popup .mapboxgl-popup-close-button {
+  color: var(--color-espresso-muted);
+  font-size: 18px;
+  padding: 4px 8px;
+  right: 2px;
+  top: 2px;
+}
+
+.sips-popup .mapboxgl-popup-close-button:hover {
+  color: var(--color-terracotta);
+  background: transparent;
+}

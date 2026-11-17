@@ -1,0 +1,154 @@
+"use server";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
+
+async function recalculateRating(supabase: ReturnType<typeof createAdminClient>, cafeId: string) {
+  const { data: reviews } = await supabase
+    .from("reviews")
+    .select("overall_rating")
+    .eq("cafe_id", cafeId)
+    .eq("status", "published");
+
+  if (!reviews || reviews.length === 0) {
+    await supabase
+      .from("cafes")
+      .update({ overall_rating: null })
+      .eq("id", cafeId);
+    return;
+  }
+
+  const avg = reviews.reduce((sum, r) => sum + r.overall_rating, 0) / reviews.length;
+  const rounded = Math.round(avg * 2) / 2; // Round to nearest 0.5
+
+  await supabase
+    .from("cafes")
+    .update({ overall_rating: rounded })
+    .eq("id", cafeId);
+}
+
+export async function createReview(data: {
+  cafe_id: string;
+  overall_rating: number;
+  note: string;
+  date_visited: string;
+  status: "draft" | "published";
+  items?: Array<{
+    name: string;
+    category: "drink" | "food";
+    type: string;
+    rating: number;
+    is_favorite: boolean;
+    notes?: string;
+  }>;
+  photo_urls?: string[];
+}) {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  // Insert review
+  const { data: review, error } = await supabase
+    .from("reviews")
+    .insert({
+      cafe_id: data.cafe_id,
+      overall_rating: data.overall_rating,
+      note: data.note,
+      date_visited: data.date_visited,
+      status: data.status,
+    })
+    .select()
+    .single();
+
+  if (error || !review) return { error: error?.message ?? "Failed to create review", review: null };
+
+  // Insert items
+  if (data.items && data.items.length > 0) {
+    const { error: itemsError } = await supabase.from("items").insert(
+      data.items.map((item) => ({
+        cafe_id: data.cafe_id,
+        review_id: review.id,
+        name: item.name,
+        category: item.category,
+        type: item.type,
+        rating: item.rating,
+        is_favorite: item.is_favorite,
+        notes: item.notes ?? null,
+        photo_url: null,
+      }))
+    );
+    if (itemsError) {
+      return { error: `Failed to save items: ${itemsError.message}`, review };
+    }
+  }
+
+  // Link photos
+  if (data.photo_urls && data.photo_urls.length > 0) {
+    await supabase.from("photos").insert(
+      data.photo_urls.map((url) => ({
+        cafe_id: data.cafe_id,
+        review_id: review.id,
+        photo_url: url,
+      }))
+    );
+
+    // Set first photo as cover if cafe has none
+    const { data: cafe } = await supabase
+      .from("cafes")
+      .select("cover_photo_url")
+      .eq("id", data.cafe_id)
+      .single();
+
+    if (cafe && !cafe.cover_photo_url) {
+      await supabase
+        .from("cafes")
+        .update({ cover_photo_url: data.photo_urls[0] })
+        .eq("id", data.cafe_id);
+    }
+  }
+
+  // Recalculate rating if published
+  if (data.status === "published") {
+    await recalculateRating(supabase, data.cafe_id);
+  }
+
+  return { error: null, review };
+}
+
+export async function updateReview(
+  reviewId: string,
+  data: {
+    overall_rating?: number;
+    note?: string;
+    date_visited?: string;
+    status?: "draft" | "published";
+  }
+) {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("reviews")
+    .update(data)
+    .eq("id", reviewId);
+
+  if (error) return { error: error.message };
+
+  // Always recalculate — covers publish, unpublish, and rating changes
+  {
+    const { data: review } = await supabase
+      .from("reviews")
+      .select("cafe_id")
+      .eq("id", reviewId)
+      .single();
+
+    if (review) {
+      await recalculateRating(supabase, review.cafe_id);
+    }
+  }
+
+  return { error: null };
+}
+
+export async function publishReview(reviewId: string) {
+  return updateReview(reviewId, { status: "published" });
+}

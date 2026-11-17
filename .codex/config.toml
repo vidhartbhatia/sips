@@ -1,0 +1,26 @@
+# Project-level Codex config (applies when this repo is trusted).
+# One-time per machine:
+#   codex plugin marketplace add pbakaus/impeccable
+#   codex plugin marketplace add anthropics/claude-plugins-official
+#   codex plugin marketplace add supabase/agent-skills
+#   codex plugin marketplace add GoogleChrome/modern-web-guidance
+# Update: codex plugin marketplace upgrade
+# Project skills in .agents/skills/ are read natively.
+
+[plugins."superpowers@claude-plugins-official"]
+enabled = true
+
+[plugins."impeccable@impeccable"]
+enabled = true
+
+[plugins."mattpocock-skills@claude-plugins-official"]
+enabled = true
+
+[plugins."supabase@supabase-agent-skills"]
+enabled = true
+
+[plugins."postgres-best-practices@supabase-agent-skills"]
+enabled = true
+
+[plugins."modern-web-guidance@googlechrome"]
+enabled = true

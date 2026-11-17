@@ -1,0 +1,88 @@
+import "server-only";
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { compileMDX } from "next-mdx-remote/rsc";
+import type { ReactElement } from "react";
+import type { MDXComponents } from "mdx/types";
+
+const BLOG_DIR = path.join(process.cwd(), "content", "blog");
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export interface PostMeta {
+  slug: string;
+  title: string;
+  date: string;
+  author?: string;
+  excerpt?: string;
+  cover?: string;
+}
+
+export interface Post {
+  meta: PostMeta;
+  content: ReactElement;
+}
+
+const optionalString = (v: unknown): string | undefined =>
+  typeof v === "string" && v.trim() !== "" ? v : undefined;
+
+/**
+ * Single source of truth for frontmatter → PostMeta. Returns null for drafts and for
+ * invalid posts. Anything other than literal YAML `draft: false` (or no `draft` key)
+ * counts as a draft, so a typo never publishes by accident.
+ */
+function toMeta(slug: string, fm: Record<string, unknown>): PostMeta | null {
+  if ("draft" in fm && fm.draft !== false) return null;
+  const title = optionalString(fm.title);
+  const rawDate = fm.date instanceof Date ? fm.date.toISOString().slice(0, 10) : fm.date;
+  const date = optionalString(rawDate);
+  if (!title || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return {
+    slug,
+    title,
+    date,
+    author: optionalString(fm.author),
+    excerpt: optionalString(fm.excerpt),
+    cover: optionalString(fm.cover),
+  };
+}
+
+async function readSource(slug: string): Promise<string | null> {
+  if (!SLUG_RE.test(slug)) return null;
+  try {
+    return await readFile(path.join(BLOG_DIR, `${slug}.mdx`), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+export async function getPost(
+  slug: string,
+  components: MDXComponents = {},
+): Promise<Post | null> {
+  const source = await readSource(slug);
+  if (!source) return null;
+  const { content, frontmatter } = await compileMDX<Record<string, unknown>>({
+    source,
+    components,
+    options: { parseFrontmatter: true },
+  });
+  const meta = toMeta(slug, frontmatter);
+  return meta ? { meta, content } : null;
+}
+
+export async function getAllPosts(): Promise<PostMeta[]> {
+  let files: string[];
+  try {
+    files = await readdir(BLOG_DIR);
+  } catch {
+    return [];
+  }
+  const posts = await Promise.all(
+    files
+      .filter((f) => f.endsWith(".mdx"))
+      .map(async (file) => (await getPost(file.replace(/\.mdx$/, "")))?.meta ?? null),
+  );
+  return posts
+    .filter((p): p is PostMeta => p !== null)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}

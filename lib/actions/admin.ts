@@ -1,0 +1,87 @@
+"use server";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
+import { deletePhoto } from "@/lib/storage";
+import { redirect } from "next/navigation";
+
+export async function deleteCafe(cafeId: string) {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  // Delete associated photos from storage
+  const { data: photos } = await supabase
+    .from("photos")
+    .select("photo_url")
+    .eq("cafe_id", cafeId);
+
+  if (photos) {
+    for (const photo of photos) {
+      try { await deletePhoto(photo.photo_url); } catch {}
+    }
+  }
+
+  // Delete cafe (cascades to reviews, items, photos via FK)
+  const { error } = await supabase
+    .from("cafes")
+    .delete()
+    .eq("id", cafeId);
+
+  if (error) return { error: error.message };
+  redirect("/admin/cafes");
+}
+
+export async function deleteReview(reviewId: string) {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  // Get cafe_id for rating recalculation
+  const { data: review } = await supabase
+    .from("reviews")
+    .select("cafe_id")
+    .eq("id", reviewId)
+    .single();
+
+  // Delete associated photos from storage
+  const { data: photos } = await supabase
+    .from("photos")
+    .select("photo_url")
+    .eq("review_id", reviewId);
+
+  if (photos) {
+    for (const photo of photos) {
+      try { await deletePhoto(photo.photo_url); } catch {}
+    }
+  }
+
+  const { error } = await supabase
+    .from("reviews")
+    .delete()
+    .eq("id", reviewId);
+
+  if (error) return { error: error.message };
+
+  // Recalculate cafe rating
+  if (review) {
+    const { data: remaining } = await supabase
+      .from("reviews")
+      .select("overall_rating")
+      .eq("cafe_id", review.cafe_id)
+      .eq("status", "published");
+
+    // When zero reviews remain, overall_rating must be null (not 0) so the
+    // UI can distinguish "no reviews yet" from a literal 0-rating. Mirrors
+    // recalculateRating() in lib/actions/reviews.ts — single convention per
+    // CLAUDE.md.
+    const avg = remaining && remaining.length > 0
+      ? Math.round((remaining.reduce((s, r) => s + r.overall_rating, 0) / remaining.length) * 2) / 2
+      : null;
+
+    await supabase
+      .from("cafes")
+      .update({ overall_rating: avg })
+      .eq("id", review.cafe_id);
+  }
+
+  redirect("/admin");
+}
