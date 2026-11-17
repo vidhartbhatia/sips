@@ -17,7 +17,7 @@ const SUPABASE_ORIGIN = getSupabaseHost();
 /**
  * Build the per-request Content-Security-Policy.
  *
- * Domains allowed (per Backend research, notes/scratch/research/chunk1-headers-csp-sota.md):
+ * Domains allowed:
  *  - Supabase project (Storage images, Auth/REST, Realtime WS) — derived from env
  *  - Mapbox (api.mapbox.com tiles/sprites/styles, events.mapbox.com telemetry)
  *  - Google Geocoding (maps.googleapis.com — server-side fetch only, listed for

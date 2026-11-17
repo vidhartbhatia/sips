@@ -66,7 +66,7 @@ blog posts, and new UI features that use the existing data.
 npm run dev        # local dev server → http://localhost:3000
 npm run build      # production build (must pass before pushing to main)
 npm run typecheck  # tsc --noEmit (must pass)
-npm run lint       # ESLint — currently has known pre-existing errors, don't add new ones
+npm run lint       # ESLint (0 problems; blocking in CI)
 npm run test:e2e   # Playwright smoke suite (read-only); run `npm run build` first
 ```
 
@@ -98,7 +98,9 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
 - Geocoding goes through `lib/google/geocode.ts` only.
 - Rating recalculation lives in `recalculateCafeRating()` (`lib/ratings.ts`), shared by every
   review mutation; zero reviews → `null`, never `0`. Keep it out of `"use server"` files.
-- Images are resized client-side before upload (`lib/image-utils.ts`, max 2000px, JPEG 0.85).
+- Resize images client-side before upload with `lib/image-utils.ts` (max 2000px, JPEG 0.85).
+  Quick-add does this today; the review new/edit forms still upload originals, so fix that when
+  touching them.
 - Framer Motion: always use `useMotionSafe()` from `lib/motion.ts` (reduced-motion).
 - Code style: ES2022+, `const`, no `any`, props interfaces, early returns.
 
