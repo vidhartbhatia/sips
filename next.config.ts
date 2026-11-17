@@ -27,9 +27,8 @@ const nextConfig: NextConfig = {
     },
   },
   // P1-26: Static browser hardening headers. Per-request CSP is set in
-  // proxy.ts (needs a nonce). Values per Backend research
-  // (notes/scratch/research/chunk1-headers-csp-sota.md). HSTS preload
-  // intentionally dropped for v1 — preload submission is a separate decision.
+  // proxy.ts (needs a nonce). HSTS preload is intentionally left out for now; preload
+  // submission is a separate decision.
   async headers() {
     return [
       {
