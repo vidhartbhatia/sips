@@ -70,6 +70,10 @@ for p in superpowers@claude-plugins-official context7@claude-plugins-official \
   modern-web-guidance@googlechrome; do claude plugin install "$p" --scope user; done
 ```
 
+If she has access to the private companion repo (`gh repo view vidhartbhatia/sips-private`
+succeeds; accept that invite the same way as above), also run:
+`claude plugin marketplace add vidhartbhatia/sips-private && claude plugin install sips-ops@sips-private`.
+
 Tell her the plugins load in her next Claude session.
 
 ## 6. See it run
