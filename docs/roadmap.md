@@ -18,5 +18,7 @@ Later: when image egress nears Supabase's free tier, move Storage to Cloudflare 
 - Lint at zero errors and blocking in CI; one shared rating util (`lib/ratings.ts`).
 - Tighter RLS: drafts' items, photos and reviews stay private (migrations 005–006).
 - Private review photos served through signed URLs; a separate public blog bucket (007).
-- Author bylines on reviews (004).
-- Magic link no longer creates users; the allowlist is checked in proxy, callback and actions.
+- Author bylines in code, with migration 004. The production rollout follows
+  `docs/bylines-rollout.md`.
+- The login form no longer creates users, and the allowlist is checked in proxy, callback and
+  Server Actions.

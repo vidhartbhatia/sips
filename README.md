@@ -22,7 +22,7 @@ Live at **[oursips.com](https://oursips.com)**.
 - **Map:** every published cafe on a Mapbox map, with search and filters for neighborhood and
   minimum rating.
 - **Want to go:** a list of cafes we haven't reviewed yet.
-- **Blog:** MDX posts in `content/blog/`.
+- **Blog:** MDX posts in `content/blog/`. The pipeline works, but no posts are published yet.
 - **Admin** (two authors only): add cafes (addresses geocoded server-side), write reviews as
   drafts and publish them, upload photos, and bulk-import saved places and lists from a Google
   Takeout export.
@@ -51,15 +51,15 @@ flowchart LR
 
   browser --> proxy --> rsc
   proxy --> actions
-  rsc -- "anon key, RLS-filtered reads" --> db
-  rsc -- "sign paths from those reads" --> photos
-  actions -- "service role, after allowlist check" --> db
+  proxy -.-> auth
+  rsc -- "anon key, RLS" --> db
+  rsc --> photos
+  actions -- "service role" --> db
   actions --> photos
   actions --> geocode
-  proxy -. "refresh session" .-> auth
-  browser -- "map tiles" --> mapbox
-  browser -- "signed photo URLs" --> photos
-  browser -- "blog images" --> blog
+  browser --> mapbox
+  browser --> photos
+  browser --> blog
 ```
 
 Public pages are Server Components that read with the anon key, so Postgres row-level security
