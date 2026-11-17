@@ -41,7 +41,7 @@ let a design task quietly turn into one:
   platforms, no new paid services, no new databases.
 - **Data:** never delete or bulk-edit cafes, reviews or photos, drop tables, or reset the DB.
   Schema changes (`supabase/migrations/`) and RLS or Storage policies are V.'s.
-- **Auth and security:** login flow, `ALLOWED_EMAILS`, `middleware.ts`/CSP, `lib/auth.ts`,
+- **Auth and security:** login flow, `ALLOWED_EMAILS`, `proxy.ts` (formerly `middleware.ts`)/CSP, `lib/auth.ts`,
   service-role usage (`lib/supabase/admin.ts`), env vars and API keys.
 - **Framework-level changes:** swapping or adding major libraries or frameworks (another CSS or
   UI framework, a state library, a CMS), Next.js/React upgrades, rewrites of whole areas.

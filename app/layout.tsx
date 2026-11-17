@@ -59,7 +59,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // middleware.ts sends a nonce-based CSP with 'strict-dynamic'. Next.js only stamps that
+  // proxy.ts sends a nonce-based CSP with 'strict-dynamic'. Next.js only stamps that
   // nonce onto its scripts when a page renders per request, so opt every route out of
   // static prerendering — otherwise the browser blocks hydration on static pages.
   await connection();
