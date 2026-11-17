@@ -3,9 +3,9 @@ import { test, expect, type Page, type Request } from "@playwright/test";
 /**
  * Login code fallback. Every Supabase Auth call from the browser is mocked with `page.route`:
  * no real email is sent and production auth is never contacted. Any auth request without a
- * mock is aborted and fails the test. The `/admin` navigation after a mocked sign-in is
- * stubbed too, so the fake session cookie never reaches the Next server (whose proxy would
- * otherwise check it against the real auth server).
+ * mock is aborted and fails the test. After a mocked sign-in, the `/admin` navigation is
+ * stubbed and every other request carrying the fake session cookie is aborted, so it never
+ * reaches the Next server (whose proxy would check it against the real auth server).
  *
  * The address uses a reserved domain, so even a leaked request could not reach a person.
  */
@@ -60,6 +60,14 @@ function fakeSession() {
 async function mockAuth(page: Page, verify: "success" | "invalid"): Promise<AuthMocks> {
   const mocks: AuthMocks = { unmocked: [], otpRequests: [], verifyRequests: [] };
 
+  // Lowest priority: once the mocked sign-in sets the fake session cookie, abort any
+  // request that carries it (a late prefetch, a navigation), because proxy.ts would check
+  // it with the real auth server. The /admin stub below runs before this guard.
+  await page.route("**/*", async (route) => {
+    const cookie = (await route.request().headerValue("cookie")) ?? "";
+    if (/(^|;\s*)sb-/.test(cookie)) return route.abort();
+    return route.continue();
+  });
   await page.route("**/auth/v1/**", (route) => {
     mocks.unmocked.push(`${route.request().method()} ${route.request().url()}`);
     return route.abort();
@@ -102,6 +110,8 @@ test.describe("login code fallback", () => {
     await expect(code).toBeVisible();
     await expect(code).toHaveAttribute("inputmode", "numeric");
     await expect(code).toHaveAttribute("autocomplete", "one-time-code");
+    // Opening the link uses up the code, so the page says to use one or the other.
+    await expect(page.getByText(/enter the code from the email here instead of tapping the link/i)).toBeVisible();
 
     expect(mocks.otpRequests).toHaveLength(1);
     expect(mocks.otpRequests[0].postDataJSON()).toMatchObject({ email: EMAIL, create_user: false });
@@ -119,11 +129,20 @@ test.describe("login code fallback", () => {
     expect(mocks.verifyRequests).toHaveLength(1);
     expect(mocks.verifyRequests[0].postDataJSON()).toMatchObject({ email: EMAIL, token: CODE, type: "email" });
     expect(mocks.unmocked).toEqual([]);
+
+    // The fake session cookie is set now. Nothing carrying it may reach the server.
+    await expect(page.goto("/")).rejects.toThrow();
   });
 
   test("a rejected code shows an announced error and stays on the page", async ({ page }) => {
     const mocks = await mockAuth(page, "invalid");
     await sendMagicLink(page);
+
+    // The live region is in the accessibility tree before it gets a message, so the
+    // message is announced when it arrives.
+    const region = page.locator("#login-code-error");
+    await expect(region).toHaveAttribute("role", "alert");
+    expect(await region.evaluate((el) => getComputedStyle(el).display)).not.toBe("none");
 
     await page.getByLabel(CODE_LABEL).fill("000000");
     await page.getByRole("button", { name: "Sign in with code" }).click();

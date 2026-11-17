@@ -126,8 +126,9 @@ function LoginContent() {
               <div className="mb-6 rounded-xl border border-sage/30 bg-sage/5 p-6 text-center">
                 <p className="font-heading text-2xl text-espresso">Check your email</p>
                 <p className="mt-2 text-sm text-espresso-muted">
-                  We sent a magic link to <strong>{email}</strong>. If it opens
-                  somewhere else, enter the code from the email here.
+                  We sent a magic link to <strong>{email}</strong>. On your
+                  phone, enter the code from the email here instead of tapping
+                  the link. Opening the link uses up the code.
                 </p>
               </div>
             )}
@@ -171,7 +172,8 @@ function LoginContent() {
               <p
                 id="login-code-error"
                 role="alert"
-                className="mt-2 text-center text-sm text-terracotta empty:hidden"
+                // Always rendered (empty until needed) so screen readers announce the message.
+                className={`text-center text-sm text-terracotta ${codeFailed ? "mt-2" : ""}`}
               >
                 {codeFailed ? "That code didn't work. Request a new link." : ""}
               </p>
