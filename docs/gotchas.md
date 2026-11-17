@@ -8,7 +8,7 @@ Known quirks for Sips. Add new ones at the bottom: date, the symptom, the rule, 
 
 **Rule:** Any rating-mutating path MUST produce `null` for zero reviews so the UI can distinguish "no data" from a literal 0 rating.
 
-**Why DRY didn't fix it immediately:** `recalculateRating()` lives in a `"use server"` module — exporting it would turn it into a server action and mint a stray RPC endpoint. Proper fix is to extract to a non-action util (e.g. `lib/ratings.ts`) and re-import from both `reviews.ts` and `admin.ts`. Not done yet; both call sites are aligned for now.
+**Why DRY didn't fix it immediately:** `recalculateRating()` lives in a `"use server"` module — exporting it would turn it into a server action and mint a stray RPC endpoint. Proper fix is to extract to a non-action util (e.g. `lib/ratings.ts`) and re-import from both `reviews.ts` and `admin.ts`. Done in `lib/ratings.ts` (`recalculateCafeRating`); `admin.ts` uses it, `reviews.ts` still has its own copy until it switches over.
 
 ## 2026-04 — CSP header invisible on first-hit curl
 
