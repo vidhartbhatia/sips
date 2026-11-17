@@ -2,25 +2,13 @@
  * Google Geocoding helpers for imports that lack coordinates.
  *
  * Uses the server-only `GOOGLE_GEOCODING_API_KEY` (no `NEXT_PUBLIC_` prefix
- * so it never ships to the browser bundle). Falls back to the legacy
- * `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` during the env-var rotation window so
- * production does not break before the new key is set.
+ * so it never ships to the browser bundle). There is deliberately no fallback
+ * to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: that key is HTTP-referrer restricted
+ * and not enabled for the Geocoding API, so a server-side call with it fails.
  */
 
 function resolveApiKey(): string {
-  const serverKey = process.env.GOOGLE_GEOCODING_API_KEY;
-  if (serverKey) return serverKey;
-
-  const legacyKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (legacyKey) {
-    console.warn(
-      "[geocode] GOOGLE_GEOCODING_API_KEY is not set — falling back to NEXT_PUBLIC_GOOGLE_MAPS_API_KEY. " +
-        "Rotate to a server-only key before public launch (P0-2)."
-    );
-    return legacyKey;
-  }
-
-  return "";
+  return process.env.GOOGLE_GEOCODING_API_KEY?.trim() ?? "";
 }
 
 // ---------------------------------------------------------------------------
@@ -33,7 +21,7 @@ export async function geocodeAddress(
   const apiKey = resolveApiKey();
   if (!apiKey) {
     console.warn(
-      "Neither GOOGLE_GEOCODING_API_KEY nor NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is set — skipping geocode"
+      "[geocode] GOOGLE_GEOCODING_API_KEY is not set — skipping geocode"
     );
     return null;
   }
@@ -51,7 +39,14 @@ export async function geocodeAddress(
       results: { geometry: { location: { lat: number; lng: number } } }[];
     };
 
-    if (data.status !== "OK" || data.results.length === 0) return null;
+    if (data.status !== "OK" || data.results.length === 0) {
+      // ZERO_RESULTS is a normal miss; anything else (REQUEST_DENIED,
+      // OVER_QUERY_LIMIT) means the key or quota is broken, so say so in logs.
+      if (data.status !== "ZERO_RESULTS") {
+        console.error(`[geocode] Google returned ${data.status}`);
+      }
+      return null;
+    }
 
     const loc = data.results[0].geometry.location;
     return { lat: loc.lat, lng: loc.lng };
