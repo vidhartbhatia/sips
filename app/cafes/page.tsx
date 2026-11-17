@@ -11,7 +11,7 @@ export default async function CafesPage() {
   return (
     <div className="flex min-h-screen flex-col bg-cream">
       <Header />
-      <main className="mx-auto max-w-6xl flex-1 px-6 py-12">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
           Browse
         </span>

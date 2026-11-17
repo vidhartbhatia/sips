@@ -117,6 +117,15 @@ test.describe("launch gating", () => {
     }
   });
 
+  test("/cafes keeps its full-width layout at 375px, also when empty", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/cafes");
+    // With nothing listed, a shrink-to-fit <main> pulled the heading off its left edge.
+    const main = await page.getByRole("main").boundingBox();
+    expect(main?.x).toBe(0);
+    expect(main?.width).toBe(375);
+  });
+
   test("the map is unlinked: no nav link or home CTA", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator('a[href="/map"]')).toHaveCount(0);
