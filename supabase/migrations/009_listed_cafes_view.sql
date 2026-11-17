@@ -5,6 +5,10 @@
 -- lib/supabase/queries.ts reads every public cafe list and the cafe page from this view,
 -- so a cafe with only drafts (or no reviews) is never listed and its page 404s.
 --
+-- `select c.*` is expanded when the view is created, so the view's column list is frozen
+-- then. A column added to cafes later is not exposed here until the view is re-created
+-- with `create or replace view` (append-only changes are allowed).
+--
 -- security_invoker: the view runs with the caller's privileges, so the RLS on cafes and
 -- reviews still applies (Postgres 15+). The status filters are explicit as well, because
 -- an admin's session can read drafts through RLS and must still get the public list.
