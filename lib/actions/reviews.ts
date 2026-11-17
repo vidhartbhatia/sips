@@ -4,30 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { syncCoverPhoto } from "@/lib/cover-photo";
 import { toStoragePath } from "@/lib/storage";
-
-async function recalculateRating(supabase: ReturnType<typeof createAdminClient>, cafeId: string) {
-  const { data: reviews } = await supabase
-    .from("reviews")
-    .select("overall_rating")
-    .eq("cafe_id", cafeId)
-    .eq("status", "published");
-
-  if (!reviews || reviews.length === 0) {
-    await supabase
-      .from("cafes")
-      .update({ overall_rating: null })
-      .eq("id", cafeId);
-    return;
-  }
-
-  const avg = reviews.reduce((sum, r) => sum + r.overall_rating, 0) / reviews.length;
-  const rounded = Math.round(avg * 2) / 2; // Round to nearest 0.5
-
-  await supabase
-    .from("cafes")
-    .update({ overall_rating: rounded })
-    .eq("id", cafeId);
-}
+import { recalculateCafeRating } from "@/lib/ratings";
 
 export async function createReview(data: {
   cafe_id: string;
@@ -103,7 +80,7 @@ export async function createReview(data: {
 
   // Recalculate rating if published
   if (data.status === "published") {
-    await recalculateRating(supabase, data.cafe_id);
+    await recalculateCafeRating(supabase, data.cafe_id);
   }
 
   return { error: null, review };
@@ -141,7 +118,7 @@ export async function updateReview(
       .single();
 
     if (review) {
-      await recalculateRating(supabase, review.cafe_id);
+      await recalculateCafeRating(supabase, review.cafe_id);
       // Unpublishing must take this review's photo off the public cafe cover
       await syncCoverPhoto(supabase, review.cafe_id);
     }
