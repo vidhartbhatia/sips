@@ -262,7 +262,9 @@ export async function getReviewById(id: string) {
   const sb = createAdminClient();
   const { data } = await sb
     .from("reviews")
-    .select("*, cafes(name, slug, neighborhood), items(*), photos(*)")
+    // Two relationships link reviews and photos after migration 008 (photos.review_id and
+    // reviews.cover_photo_id), so the embed names the one it means.
+    .select("*, cafes(name, slug, neighborhood), items(*), photos!photos_review_id_fkey(*)")
     .eq("id", id)
     .single();
   if (!data) return data;

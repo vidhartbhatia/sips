@@ -48,7 +48,8 @@ export async function createCafe(data: {
       lat: coords?.lat ?? 0,
       lng: coords?.lng ?? 0,
       vibe_tags: data.vibe_tags ?? [],
-      overall_rating: 0,
+      // No reviews yet: no score (null, never 0).
+      overall_rating: null,
       status: "published",
     })
     .select()
