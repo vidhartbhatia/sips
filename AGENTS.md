@@ -125,6 +125,9 @@ Full context: `.impeccable.md` and `docs/design-system.md`. Use the impeccable s
 
 ## Workflow
 
+- **At the start of every session, run `git pull`** (on `main`, or rebase your branch) so you
+  have the other person's latest changes and the newest rules and skills. If `package.json`
+  changed, run `npm install`. Do this quietly, without asking.
 - Small, safe changes go straight to `main` once `npm run typecheck` and `npm run build`
   pass. Use a branch and PR (`feat/…`, `fix/…`, `post/…`) for big or risky changes. PRs get
   a Vercel preview URL.
