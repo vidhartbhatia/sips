@@ -3,7 +3,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { syncCoverPhoto } from "@/lib/cover-photo";
-import { toStoragePath } from "@/lib/storage";
 import { recalculateCafeRating } from "@/lib/ratings";
 import { canPublish, normalizeScore } from "@/lib/review-rules";
 
@@ -129,98 +128,6 @@ async function checkPublishable(
   const overall = overrideOverall === undefined ? reviewRes.data.overall_rating : overrideOverall;
   const check = canPublish({ overall_rating: overall }, itemsRes.data ?? []);
   return check.ok ? null : check.reason;
-}
-
-/**
- * Legacy create used by the quick-add and review/new pages until the capture form replaces
- * them. Publishing straight away goes through the same publish rules as `publishReview`.
- */
-export async function createReview(data: {
-  cafe_id: string;
-  overall_rating: number;
-  note: string;
-  date_visited: string;
-  status: "draft" | "published";
-  items?: Array<{
-    name: string;
-    category: "drink" | "food";
-    type: string;
-    rating: number;
-    is_favorite: boolean;
-    notes?: string;
-  }>;
-  photo_urls?: string[];
-}) {
-  const user = await requireAuth();
-  const supabase = createAdminClient();
-
-  // Explicit status, never the column default ('published'): a missing or unknown value
-  // from the client saves a draft.
-  const status = data.status === "published" ? "published" : "draft";
-  if (status === "published") {
-    const check = canPublish({ overall_rating: data.overall_rating }, data.items ?? []);
-    if (!check.ok) return { error: check.reason, review: null };
-  }
-
-  // Insert review, attributed to whoever is signed in (byline, ship-plan R7)
-  const { data: review, error } = await supabase
-    .from("reviews")
-    .insert({
-      cafe_id: data.cafe_id,
-      author_id: user.id,
-      overall_rating: data.overall_rating,
-      note: data.note,
-      date_visited: data.date_visited,
-      status,
-    })
-    .select()
-    .single();
-
-  if (error || !review) return { error: error?.message ?? "Failed to create review", review: null };
-
-  // Insert items
-  if (data.items && data.items.length > 0) {
-    const { error: itemsError } = await supabase.from("items").insert(
-      data.items.map((item) => ({
-        cafe_id: data.cafe_id,
-        review_id: review.id,
-        name: item.name,
-        category: item.category,
-        type: item.type,
-        rating: item.rating,
-        is_favorite: item.is_favorite,
-        notes: item.notes ?? null,
-        photo_url: null,
-      }))
-    );
-    if (itemsError) {
-      return { error: `Failed to save items: ${itemsError.message}`, review };
-    }
-  }
-
-  // Link photos. Store bare storage paths; anything that isn't a photos-bucket path is dropped.
-  const photoPaths = (data.photo_urls ?? [])
-    .map((value) => toStoragePath(value))
-    .filter((path): path is string => path !== null);
-  if (photoPaths.length > 0) {
-    await supabase.from("photos").insert(
-      photoPaths.map((path) => ({
-        cafe_id: data.cafe_id,
-        review_id: review.id,
-        photo_url: path,
-      }))
-    );
-  }
-
-  // Cover comes only from published-review photos (a draft's photos stay off the public cafe row)
-  await syncCoverPhoto(supabase, data.cafe_id);
-
-  // Recalculate rating if published
-  if (status === "published") {
-    await recalculateCafeRating(supabase, data.cafe_id);
-  }
-
-  return { error: null, review };
 }
 
 export async function updateReview(

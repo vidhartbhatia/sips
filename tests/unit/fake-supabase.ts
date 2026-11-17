@@ -56,6 +56,9 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
     this.one = true;
     return this;
   }
+  maybeSingle() {
+    return this.single();
+  }
 
   private matching(): Row[] {
     return (this.client.tables[this.table] ?? []).filter((row) =>

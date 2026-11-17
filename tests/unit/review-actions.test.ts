@@ -8,34 +8,53 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => client }));
 vi.mock("@/lib/cover-photo", () => ({ syncCoverPhoto: vi.fn(async () => {}) }));
 vi.mock("@/lib/ratings", () => ({ recalculateCafeRating: vi.fn(async () => {}) }));
 
-const { createReview } = await import("@/lib/actions/reviews");
+const { createReviewDraft } = await import("@/lib/actions/reviews");
 
-const base = {
+const input = {
   cafe_id: "cafe-1",
-  overall_rating: 4,
-  note: "n",
   date_visited: "2026-11-01",
+  overall_rating: null,
+  verdict: "  Go for the hojicha.  ",
+  note: "",
   items: [
-    { name: "Latte", category: "drink" as const, type: "latte", rating: null as unknown as number, is_favorite: false },
+    { name: "Hojicha latte", category: "drink" as const, type: null, rating: null, is_favorite: true, notes: null },
+    { name: "  ", category: "drink" as const, type: null, rating: 4, is_favorite: false, notes: null },
   ],
 };
 
-describe("createReview (legacy)", () => {
+describe("createReviewDraft", () => {
   beforeEach(() => {
     client = fakeClient({ cafes: [{ id: "cafe-1" }], reviews: [], items: [], photos: [] });
   });
 
-  it("rejects publishing with an unscored drink", async () => {
-    const result = await createReview({ ...base, status: "published" });
-    expect(result.error).toMatch(/Score every drink/);
+  it("always saves a draft by the signed-in author, unscored allowed", async () => {
+    const result = await createReviewDraft(input);
+    expect(result.error).toBeNull();
+    expect(client.tables.reviews).toEqual([
+      expect.objectContaining({
+        id: result.reviewId,
+        status: "draft",
+        author_id: "author-1",
+        overall_rating: null,
+        verdict: "Go for the hojicha.",
+        note: null,
+      }),
+    ]);
+    // Empty drink rows are dropped; item ids come back in order.
+    expect(client.tables.items).toEqual([
+      expect.objectContaining({ name: "Hojicha latte", rating: null, review_id: result.reviewId }),
+    ]);
+    expect(result.itemIds).toEqual([client.tables.items[0].id]);
+  });
+
+  it("rejects a score that isn't a whole number 1-5", async () => {
+    const result = await createReviewDraft({ ...input, overall_rating: 7 });
+    expect(result.error).toMatch(/1 to 5/);
     expect(client.tables.reviews).toEqual([]);
   });
 
-  it("never relies on the database default status (published) when status is missing", async () => {
-    // A Server Action receives whatever the client sends; TypeScript doesn't hold at runtime.
-    const result = await createReview({ ...base } as unknown as Parameters<typeof createReview>[0]);
-    const saved = client.tables.reviews[0];
-    expect(result.error ?? saved?.status).not.toBe("published");
-    if (saved) expect(saved.status).toBe("draft");
+  it("rejects an unknown cafe", async () => {
+    const result = await createReviewDraft({ ...input, cafe_id: "nope" });
+    expect(result.error).toMatch(/cafe/i);
   });
 });
