@@ -272,14 +272,14 @@ export default function CapturePage() {
           </label>
         </Section>
 
-        {error && (
-          <p role="alert" className="rounded-xl border border-terracotta-dark/40 px-4 py-3 text-sm text-espresso">
-            {error}
-          </p>
-        )}
-
         <div className="fixed inset-x-0 bottom-0 border-t border-espresso/[0.08] bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm">
           <div className="mx-auto max-w-lg">
+            {/* In the sticky bar, so a failed save is visible wherever she tapped it from. */}
+            {error && (
+              <p role="alert" className="mb-2 rounded-lg border border-terracotta-dark/40 bg-cream px-3 py-2 text-sm text-espresso">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
               disabled={saving}
