@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth";
+import { syncCoverPhoto } from "@/lib/cover-photo";
 import { geocodeAddress } from "@/lib/google/geocode";
 
 function slugify(name: string): string {
@@ -86,7 +87,12 @@ export async function updateCafe(
     .update(updateData)
     .eq("id", cafeId);
 
-  return { error: error?.message ?? null };
+  if (error) return { error: error.message };
+
+  // A hand-set cover is kept, unless it's a photo of an unpublished review
+  if ("cover_photo_url" in data) await syncCoverPhoto(supabase, cafeId);
+
+  return { error: null };
 }
 
 // Public read: anon client + RLS, scoped to published cafes only.
