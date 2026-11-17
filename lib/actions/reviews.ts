@@ -43,14 +43,15 @@ export async function createReview(data: {
   }>;
   photo_urls?: string[];
 }) {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = createAdminClient();
 
-  // Insert review
+  // Insert review, attributed to whoever is signed in (byline, ship-plan R7)
   const { data: review, error } = await supabase
     .from("reviews")
     .insert({
       cafe_id: data.cafe_id,
+      author_id: user.id,
       overall_rating: data.overall_rating,
       note: data.note,
       date_visited: data.date_visited,
@@ -126,9 +127,13 @@ export async function updateReview(
   await requireAuth();
   const supabase = createAdminClient();
 
+  // Whitelist the editable fields. author_id is deliberately not editable here:
+  // an edit never changes or claims a review's author (unattributed reviews stay
+  // unattributed, so one author can't be credited with the other's review).
+  const { overall_rating, note, date_visited, status } = data;
   const { error } = await supabase
     .from("reviews")
-    .update(data)
+    .update({ overall_rating, note, date_visited, status })
     .eq("id", reviewId);
 
   if (error) return { error: error.message };
