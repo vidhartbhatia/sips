@@ -16,6 +16,7 @@ export type DraftItem = {
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Trimmed text, or null when empty. */
 function optionalText(value: string | null | undefined): string | null {
@@ -36,8 +37,12 @@ function scoreOrError(value: number | null, what: string): { score: number | nul
  * Save a new visit as a **draft**, with its drinks. Always a draft: publishing is a
  * separate step (`publishReview`) that checks every score is in. The author is whoever
  * is signed in. Returns the new item ids in input order, so photos can be linked to them.
+ *
+ * Idempotent: the form generates the review `id` once. If a phone loses the response and
+ * the form sends the same draft again, the existing draft is returned instead of a copy.
  */
 export async function createReviewDraft(input: {
+  id: string;
   cafe_id: string;
   date_visited: string;
   overall_rating: number | null;
@@ -48,6 +53,7 @@ export async function createReviewDraft(input: {
   const user = await requireAuth();
   const supabase = createAdminClient();
 
+  if (!UUID_RE.test(input.id)) return { error: "Invalid draft id. Reload the page and try again." };
   if (!DATE_RE.test(input.date_visited)) return { error: "Pick the date of the visit." };
   const overall = scoreOrError(input.overall_rating, "The overall score");
   if (overall.error) return { error: overall.error };
@@ -73,6 +79,7 @@ export async function createReviewDraft(input: {
   const { data: review, error } = await supabase
     .from("reviews")
     .insert({
+      id: input.id,
       cafe_id: input.cafe_id,
       author_id: user.id,
       date_visited: input.date_visited,
@@ -83,6 +90,7 @@ export async function createReviewDraft(input: {
     })
     .select("id")
     .single();
+  if (error?.code === "23505") return existingDraft(supabase, input.id, user.id, input.cafe_id, items);
   if (error || !review) return { error: error?.message ?? "Couldn't save the draft." };
 
   if (items.length === 0) return { error: null, reviewId: review.id, itemIds: [] };
@@ -111,6 +119,39 @@ export async function createReviewDraft(input: {
 
   // A multi-row insert returns rows in input order.
   return { error: null, reviewId: review.id, itemIds: inserted.map((row) => row.id) };
+}
+
+/**
+ * The draft an earlier, identical request already saved. Only for the same author and cafe,
+ * and only while it's still a draft. Its items were saved in the same request (a failed
+ * item insert deletes the review), so they're matched back to the input by name, in order.
+ */
+async function existingDraft(
+  supabase: ReturnType<typeof createAdminClient>,
+  reviewId: string,
+  authorId: string,
+  cafeId: string,
+  items: readonly DraftItem[],
+): Promise<{ error: string | null; reviewId?: string; itemIds?: string[] }> {
+  const [reviewRes, itemsRes] = await Promise.all([
+    supabase.from("reviews").select("author_id, cafe_id, status").eq("id", reviewId).maybeSingle(),
+    supabase.from("items").select("id, name").eq("review_id", reviewId),
+  ]);
+  const review = reviewRes.data;
+  if (reviewRes.error || itemsRes.error) {
+    return { error: (reviewRes.error ?? itemsRes.error)?.message ?? "Couldn't load the draft." };
+  }
+  if (!review || review.author_id !== authorId || review.cafe_id !== cafeId || review.status !== "draft") {
+    return { error: "This draft was already saved differently. Reload the page and start again." };
+  }
+  const unused = [...(itemsRes.data ?? [])];
+  const itemIds: string[] = [];
+  for (const item of items) {
+    const i = unused.findIndex((row) => row.name === item.name);
+    if (i === -1) return { error: "This draft was already saved with different drinks. Open it from the dashboard." };
+    itemIds.push(unused.splice(i, 1)[0].id);
+  }
+  return { error: null, reviewId, itemIds };
 }
 
 /** Load a review's score and its items' scores, then run the publish rules. */

@@ -12,12 +12,15 @@ export interface FakeClient {
   from(table: string): Builder;
 }
 
-class Builder implements PromiseLike<{ data: unknown; error: null }> {
+type Result = { data: unknown; error: { code: string; message: string } | null };
+
+class Builder implements PromiseLike<Result> {
   private filters: [string, unknown][] = [];
   private orderBy: { col: string; ascending: boolean } | null = null;
   private one = false;
   private updateValues: Row | null = null;
   private inserted: Row[] | null = null;
+  private insertError: { code: string; message: string } | null = null;
 
   constructor(
     private client: FakeClient,
@@ -28,11 +31,17 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
     return this;
   }
   insert(values: Row | Row[]) {
+    const table = (this.client.tables[this.table] ??= []);
     const rows = (Array.isArray(values) ? values : [values]).map((row) => ({
-      id: `${this.table}-${(this.client.tables[this.table] ?? []).length + 1}`,
+      id: `${this.table}-${table.length + 1}`,
       ...row,
     }));
-    (this.client.tables[this.table] ??= []).push(...rows);
+    // Primary key: an id that already exists is a unique violation, as in Postgres.
+    if (rows.some((row) => table.some((existing) => existing.id === row.id))) {
+      this.insertError = { code: "23505", message: `duplicate key value violates unique constraint "${this.table}_pkey"` };
+      return this;
+    }
+    table.push(...rows);
     this.inserted = rows;
     return this;
   }
@@ -67,13 +76,14 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
   }
 
   then<R1, R2>(
-    onFulfilled?: ((v: { data: unknown; error: null }) => R1 | PromiseLike<R1>) | null,
+    onFulfilled?: ((v: Result) => R1 | PromiseLike<R1>) | null,
     onRejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null,
   ): PromiseLike<R1 | R2> {
     return Promise.resolve(this.run()).then(onFulfilled, onRejected);
   }
 
-  private run(): { data: unknown; error: null } {
+  private run(): Result {
+    if (this.insertError) return { data: null, error: this.insertError };
     if (this.inserted) return { data: this.one ? this.inserted[0] : this.inserted, error: null };
     const rows = this.matching();
     if (this.updateValues) {

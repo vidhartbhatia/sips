@@ -124,6 +124,7 @@ export type Database = {
           Review,
           "id" | "created_at" | "updated_at" | "author_id" | "note" | "overall_rating" | "verdict" | "cover_photo_id"
         > & {
+          id?: string;
           author_id?: string | null;
           note?: string | null;
           overall_rating?: number | null;

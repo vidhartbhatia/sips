@@ -11,7 +11,7 @@ import { createCafe } from "@/lib/actions/cafes";
 import { createReviewDraft, setReviewCover } from "@/lib/actions/reviews";
 import { addReviewPhoto } from "@/lib/actions/photos";
 import { resizeImage } from "@/lib/image-utils";
-import { uploadQueue, type QueueResult } from "@/lib/upload-queue";
+import { uploadVisitPhotos, type FailedPhoto, type PendingPhoto } from "@/lib/capture-upload";
 
 const inputClass =
   "w-full min-h-12 rounded-xl border border-espresso/[0.15] bg-cream px-4 py-3 text-base text-espresso placeholder:text-espresso-muted focus:border-espresso focus:outline-none focus:ring-1 focus:ring-espresso/30";
@@ -21,8 +21,6 @@ function today(): string {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
-
-type PendingPhoto = { file: File; itemId?: string };
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -41,7 +39,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
  * optional, and publishing happens later from the review's edit page.
  *
  * Save: create the cafe if it's new, create the draft with its drinks, then upload each photo
- * resized and in its own request (lib/upload-queue.ts). The first photo becomes the cover.
+ * resized and in its own request (lib/capture-upload.ts). The first photo becomes the cover.
  */
 export default function CapturePage() {
   const router = useRouter();
@@ -57,41 +55,34 @@ export default function CapturePage() {
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Generated once: sending the same draft twice (a lost response) returns the same review.
+  const [draftId] = useState(() => crypto.randomUUID());
   // Once the draft exists, a retry only re-sends the photos that failed.
   const [reviewId, setReviewId] = useState<string | null>(null);
-  const [failed, setFailed] = useState<(PendingPhoto & { error: string })[]>([]);
+  const [failed, setFailed] = useState<FailedPhoto[]>([]);
 
   const cafeReady =
     cafe?.kind === "existing" || (cafe?.kind === "new" && cafe.name.trim() !== "" && cafe.neighborhood !== "");
 
-  async function uploadAll(id: string, pending: PendingPhoto[], setCover: boolean) {
-    const done: string[] = [];
-    const failures: (PendingPhoto & { error: string })[] = [];
-    for (const [i, photo] of pending.entries()) {
-      setProgress(`Uploading photo ${i + 1} of ${pending.length}…`);
-      const result: QueueResult = await uploadQueue(
-        [photo.file],
-        (blob) => {
-          const form = new FormData();
-          form.append("file", blob, blob instanceof File ? blob.name : "photo.jpg");
-          return addReviewPhoto(id, form, { itemId: photo.itemId });
-        },
-        resizeImage,
-      );
-      if (result.photoIds[0]) {
-        if (!photo.itemId) done.push(result.photoIds[0]);
-      } else {
-        failures.push({ ...photo, error: result.failures[0]?.error ?? "Upload failed." });
-      }
-    }
-    if (setCover && done[0]) await setReviewCover(id, done[0]);
-    return failures;
+  function uploadAll(id: string, pending: readonly PendingPhoto[]) {
+    return uploadVisitPhotos(pending, {
+      resize: resizeImage,
+      addPhoto: (blob, itemId) => {
+        const form = new FormData();
+        form.append("file", blob, blob instanceof File ? blob.name : "photo.jpg");
+        return addReviewPhoto(id, form, { itemId });
+      },
+      // A cover that fails to set isn't fatal: the visit then uses its oldest photo, which
+      // is the first one uploaded.
+      setCover: (photoId) => setReviewCover(id, photoId),
+      onProgress: (n, total) => setProgress(`Uploading photo ${n} of ${total}…`),
+    });
   }
 
   async function save() {
     setError(null);
-    // The draft already exists (an earlier attempt failed after creating it): open it
-    // rather than saving a second copy.
+    // The draft and its photos are already saved (an earlier attempt stopped after that):
+    // open it rather than uploading the photos twice.
     if (reviewId) {
       router.push(`/admin/review/${reviewId}/edit`);
       return;
@@ -117,13 +108,14 @@ export default function CapturePage() {
       setProgress("Saving the draft…");
       const kept = drinks.filter((d) => d.name.trim() !== "");
       const draft = await createReviewDraft({
+        id: draftId,
         cafe_id: cafeId,
         date_visited: dateVisited,
         overall_rating: overall,
         verdict,
         note,
         items: kept.map((d) => ({
-          name: d.name,
+          name: d.name.trim(),
           category: d.category,
           type: null,
           rating: d.rating,
@@ -135,19 +127,18 @@ export default function CapturePage() {
       setReviewId(draft.reviewId);
 
       const pending: PendingPhoto[] = [
-        ...photos.map((file) => ({ file })),
+        ...photos.map((file, i) => ({ file, isCover: i === 0 })),
         ...kept.flatMap((d, i) => d.photo.map((file) => ({ file, itemId: draft.itemIds?.[i] }))),
       ];
-      const failures = await uploadAll(draft.reviewId, pending, true);
+      const { failed: failures } = await uploadAll(draft.reviewId, pending);
       if (failures.length > 0) {
         setFailed(failures);
-        setProgress(null);
-        setSaving(false);
         return;
       }
       router.push(`/admin/review/${draft.reviewId}/edit`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
       setProgress(null);
       setSaving(false);
     }
@@ -157,13 +148,17 @@ export default function CapturePage() {
     if (!reviewId) return;
     setSaving(true);
     setError(null);
-    // The cover is set only if none of the general photos made it the first time.
-    const hadCover = photos.length > failed.filter((f) => !f.itemId).length;
-    const failures = await uploadAll(reviewId, failed, !hadCover);
-    setFailed(failures);
-    setProgress(null);
-    setSaving(false);
-    if (failures.length === 0) router.push(`/admin/review/${reviewId}/edit`);
+    try {
+      // The photo marked as cover keeps its flag, so it becomes the cover if it uploads now.
+      const { failed: failures } = await uploadAll(reviewId, failed);
+      setFailed(failures);
+      if (failures.length === 0) router.push(`/admin/review/${reviewId}/edit`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProgress(null);
+      setSaving(false);
+    }
   }
 
   if (reviewId && failed.length > 0) {
@@ -182,6 +177,11 @@ export default function CapturePage() {
             </li>
           ))}
         </ul>
+        {error && (
+          <p role="alert" className="mt-4 rounded-lg border border-terracotta-dark/40 px-3 py-2 text-sm text-espresso">
+            {error}
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3">
           <button
             type="button"
