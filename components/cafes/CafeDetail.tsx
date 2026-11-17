@@ -10,8 +10,8 @@ import InkDivider from "@/components/ui/InkDivider";
 
 interface CafeItem {
   name: string;
-  type: string;
-  rating: number;
+  type: string | null;
+  rating: number | null;
   is_favorite: boolean;
   notes?: string | null;
 }
@@ -19,8 +19,8 @@ interface CafeItem {
 interface CafeReview {
   id: string;
   date_visited: string;
-  overall_rating: number;
-  note: string;
+  overall_rating: number | null;
+  note: string | null;
   author?: { display_name: string | null } | null;
 }
 
@@ -162,9 +162,11 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
                       <span className="text-base font-medium text-espresso">
                         {it.name}
                       </span>
-                      <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
-                        {it.type}
-                      </span>
+                      {it.type && (
+                        <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
+                          {it.type}
+                        </span>
+                      )}
                       {it.notes && (
                         <p className="mt-0.5 text-sm text-espresso-muted">
                           {it.notes}
@@ -172,7 +174,7 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
                       )}
                     </div>
                   </div>
-                  <SipsRating sips={it.rating} size={22} />
+                  {it.rating !== null && <SipsRating sips={it.rating} size={22} />}
                 </motion.div>
               ))}
             </div>
@@ -228,11 +230,15 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
                     <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
                       visited {review.date_visited}
                     </span>
-                    <SipsRating sips={review.overall_rating} size={22} />
+                    {review.overall_rating !== null && (
+                      <SipsRating sips={review.overall_rating} size={22} />
+                    )}
                   </div>
-                  <p className="mt-3 leading-relaxed text-espresso-muted">
-                    {review.note}
-                  </p>
+                  {review.note && (
+                    <p className="mt-3 leading-relaxed text-espresso-muted">
+                      {review.note}
+                    </p>
+                  )}
                   <ReviewByline name={review.author?.display_name} />
                 </motion.div>
               ))}

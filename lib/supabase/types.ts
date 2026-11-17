@@ -29,8 +29,14 @@ export type Review = {
   cafe_id: string;
   author_id: string | null;
   date_visited: string;
-  note: string;
-  overall_rating: number;
+  /** Optional while drafting. */
+  note: string | null;
+  /** Whole number 1–5. Null only on drafts (reviews_published_needs_rating). */
+  overall_rating: number | null;
+  /** One-line verdict for the visit. */
+  verdict: string | null;
+  /** This visit's hero photo (`photos.id`); the cafe cover follows the latest published visit. */
+  cover_photo_id: string | null;
   status: "published" | "draft";
   created_at: string;
   updated_at: string;
@@ -42,8 +48,10 @@ export type Item = {
   review_id: string | null;
   name: string;
   category: "drink" | "food";
-  type: string;
-  rating: number;
+  type: string | null;
+  /** Whole number 1–5, or null while drafting. Publishing requires every item scored. */
+  rating: number | null;
+  /** Unused: drink photos are `photos` rows with `item_id` (migration 008). */
   photo_url: string | null;
   notes: string | null;
   is_favorite: boolean;
@@ -54,6 +62,8 @@ export type Photo = {
   id: string;
   cafe_id: string;
   review_id: string | null;
+  /** The drink this photo shows, if any. */
+  item_id: string | null;
   /** Storage path in the private `photos` bucket (or a pre-007 public URL). Queries sign it. */
   photo_url: string;
   caption: string | null;
@@ -110,8 +120,15 @@ export type Database = {
       };
       reviews: {
         Row: Review;
-        Insert: Omit<Review, "id" | "created_at" | "updated_at" | "author_id"> & {
+        Insert: Omit<
+          Review,
+          "id" | "created_at" | "updated_at" | "author_id" | "note" | "overall_rating" | "verdict" | "cover_photo_id"
+        > & {
           author_id?: string | null;
+          note?: string | null;
+          overall_rating?: number | null;
+          verdict?: string | null;
+          cover_photo_id?: string | null;
         };
         Update: Partial<Omit<Review, "id" | "created_at" | "updated_at">>;
         Relationships: [
@@ -154,8 +171,9 @@ export type Database = {
       };
       photos: {
         Row: Photo;
-        Insert: Omit<Photo, "id" | "created_at" | "caption"> & {
+        Insert: Omit<Photo, "id" | "created_at" | "caption" | "item_id"> & {
           caption?: string | null;
+          item_id?: string | null;
         };
         Update: Partial<Omit<Photo, "id" | "created_at">>;
         Relationships: [

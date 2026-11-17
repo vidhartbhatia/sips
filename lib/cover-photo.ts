@@ -1,60 +1,64 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { toStoragePath } from "@/lib/storage";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+type Visit = { id: string; date_visited: string; created_at: string; cover_photo_id: string | null };
+type VisitPhoto = { id: string; review_id: string | null; photo_url: string; created_at: string };
+
 /**
- * Keep `cafes.cover_photo_url` pointing at a photo of a *published* review.
- *
- * `cafes` rows are public, so the cover must never come from a draft (or deleted)
- * review. Call after any change to a cafe's reviews or photos:
- * - no cover → use the oldest published-review photo, if any
- * - cover is a review photo that is no longer published → re-pick, or null
- * - cover that isn't one of the cafe's review photos (set by hand) → left alone
- *
- * Values are compared as storage paths, so a pre-007 full URL and its bare path match.
- *
- * Throws on database errors. Not a Server Action: callers are authenticated actions that pass the admin client.
+ * The cafe cover for a set of published visits: the latest visit's chosen cover
+ * (`reviews.cover_photo_id`), else that visit's oldest photo, else null. Only the latest
+ * visit counts (spec: the cafe cover is the latest published visit's cover). A cover id
+ * that isn't one of that visit's own photos is ignored, so a draft's photo can't become
+ * the public cover.
  */
-export async function syncCoverPhoto(
-  supabase: AdminClient,
-  cafeId: string,
-  opts: { removedUrls?: string[] } = {}
-): Promise<void> {
-  const [cafeRes, photosRes, reviewsRes] = await Promise.all([
+export function pickCafeCover(published: readonly Visit[], photos: readonly VisitPhoto[]): string | null {
+  const latest = [...published].sort(
+    (a, b) => b.date_visited.localeCompare(a.date_visited) || b.created_at.localeCompare(a.created_at),
+  )[0];
+  if (!latest) return null;
+  const own = photos
+    .filter((p) => p.review_id === latest.id)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const chosen = own.find((p) => p.id === latest.cover_photo_id);
+  return (chosen ?? own[0])?.photo_url ?? null;
+}
+
+/**
+ * Keep `cafes.cover_photo_url` equal to the latest published visit's cover.
+ *
+ * `cafes` rows are public, so the cover must only ever be a photo of a *published*
+ * review. Call after any change to a cafe's reviews, photos or a visit's cover. The
+ * public cover gate in `lib/supabase/queries.ts` re-checks this on read.
+ *
+ * Throws on database errors. Not a Server Action: callers are authenticated actions
+ * that pass the admin client.
+ */
+export async function syncCoverPhoto(supabase: AdminClient, cafeId: string): Promise<void> {
+  const [cafeRes, reviewsRes, photosRes] = await Promise.all([
     supabase.from("cafes").select("cover_photo_url").eq("id", cafeId).single(),
     supabase
+      .from("reviews")
+      .select("id, date_visited, created_at, cover_photo_id")
+      .eq("cafe_id", cafeId)
+      .eq("status", "published"),
+    supabase
       .from("photos")
-      .select("photo_url, review_id")
+      .select("id, review_id, photo_url, created_at")
       .eq("cafe_id", cafeId)
       .order("created_at", { ascending: true }),
-    supabase.from("reviews").select("id").eq("cafe_id", cafeId).eq("status", "published"),
   ]);
-  // Fail loudly: a failed read could make a draft cover look hand-set and leave it public.
-  const readError = cafeRes.error ?? photosRes.error ?? reviewsRes.error;
+  // Fail loudly: a failed read must not leave a stale (possibly draft) cover public.
+  const readError = cafeRes.error ?? reviewsRes.error ?? photosRes.error;
   if (readError) throw new Error(`syncCoverPhoto: ${readError.message}`);
   if (!cafeRes.data) return;
 
-  const photos = photosRes.data ?? [];
-  const publishedIds = new Set((reviewsRes.data ?? []).map((r) => r.id));
-  const publishedUrls = photos
-    .filter((p) => p.review_id !== null && publishedIds.has(p.review_id))
-    .map((p) => p.photo_url);
-
   const current = cafeRes.data.cover_photo_url;
-  const key = (value: string) => toStoragePath(value) ?? value;
-  const reviewPhotoKeys = new Set([...photos.map((p) => p.photo_url), ...(opts.removedUrls ?? [])].map(key));
-  const publishedKeys = new Set(publishedUrls.map(key));
-
-  const needsPick =
-    current === null || (reviewPhotoKeys.has(key(current)) && !publishedKeys.has(key(current)));
-  if (!needsPick) return;
-
-  const next = publishedUrls[0] ?? null;
+  const next = pickCafeCover(reviewsRes.data ?? [], photosRes.data ?? []);
   if (next === current) return;
 
-  // Compare-and-set: only replace the cover we read, so a cover changed in the meantime
-  // (by hand, or by another sync) isn't clobbered.
+  // Compare-and-set: only replace the cover we read, so two syncs racing don't
+  // overwrite each other with a stale pick.
   const update = supabase.from("cafes").update({ cover_photo_url: next }).eq("id", cafeId);
   const { error } = await (current === null
     ? update.is("cover_photo_url", null)

@@ -27,6 +27,9 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Unit and DB tests
+        # Vitest + PGlite (in-memory Postgres): migrations, RLS, and pure helpers. No network.
+        run: npm test
       - name: Build
         run: npm run build
         env:

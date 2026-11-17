@@ -32,8 +32,8 @@ interface CafeEditFormProps {
     reviews: Array<{
       id: string;
       date_visited: string;
-      overall_rating: number;
-      note: string;
+      overall_rating: number | null;
+      note: string | null;
     }>;
     photos: Array<{ id: string; photo_url: string }>;
   };
@@ -234,7 +234,9 @@ export default function CafeEditForm({ cafe }: CafeEditFormProps) {
                   <span className="font-mono text-[10px] uppercase tracking-wider text-espresso-muted">
                     visited {review.date_visited}
                   </span>
-                  <SipsRating sips={review.overall_rating} size={20} />
+                  {review.overall_rating !== null && (
+                    <SipsRating sips={review.overall_rating} size={20} />
+                  )}
                 </div>
                 {review.note && (
                   <p className="mt-2 line-clamp-2 text-sm text-espresso-muted">

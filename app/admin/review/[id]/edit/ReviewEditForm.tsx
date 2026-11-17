@@ -12,16 +12,16 @@ interface ReviewEditFormProps {
   review: {
     id: string;
     cafe_id: string;
-    overall_rating: number;
-    note: string;
+    overall_rating: number | null;
+    note: string | null;
     date_visited: string;
     status: string;
     cafes: { name: string; slug: string; neighborhood: string } | null;
     items: Array<{
       id: string;
       name: string;
-      type: string;
-      rating: number;
+      type: string | null;
+      rating: number | null;
       is_favorite: boolean;
       notes?: string | null;
     }>;
@@ -31,7 +31,7 @@ interface ReviewEditFormProps {
 
 export default function ReviewEditForm({ review }: ReviewEditFormProps) {
   const router = useRouter();
-  const [rating, setRating] = useState(review.overall_rating);
+  const [rating, setRating] = useState<number | null>(review.overall_rating);
   const [note, setNote] = useState(review.note ?? "");
   const [dateVisited, setDateVisited] = useState(review.date_visited);
   const [status, setStatus] = useState(review.status);
@@ -105,7 +105,7 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
                 type="button"
                 onClick={() => setRating(i)}
                 className={`transition-all ${
-                  i <= rating
+                  rating !== null && i <= rating
                     ? "scale-100 opacity-100"
                     : "scale-90 opacity-30 hover:opacity-60"
                 }`}
@@ -113,7 +113,11 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
                 <SipsCup sips={i} size={40} compact />
               </button>
             ))}
-            <SipsLabel sips={rating} className="ml-2 text-base" />
+            {rating !== null ? (
+              <SipsLabel sips={rating} className="ml-2 text-base" />
+            ) : (
+              <span className="ml-2 text-sm text-espresso-muted">Not scored yet</span>
+            )}
           </div>
         </div>
 
@@ -191,15 +195,21 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
                       <span className="text-terracotta">&hearts;</span>
                     )}
                     <span className="text-sm text-espresso">{item.name}</span>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-espresso-muted">
-                      {item.type}
-                    </span>
+                    {item.type && (
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-espresso-muted">
+                        {item.type}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <SipsCup key={i} sips={i <= item.rating ? 5 : 1} size={16} compact />
-                    ))}
-                  </div>
+                  {item.rating !== null ? (
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <SipsCup key={i} sips={item.rating !== null && i <= item.rating ? 5 : 1} size={16} compact />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-espresso-muted">Not scored yet</span>
+                  )}
                 </div>
               ))}
             </div>

@@ -65,9 +65,7 @@ export async function deleteReview(reviewId: string) {
 
   // If the cover was one of this review's photos, re-pick it from published reviews
   if (review) {
-    await syncCoverPhoto(supabase, review.cafe_id, {
-      removedUrls: (photos ?? []).map((p) => p.photo_url),
-    });
+    await syncCoverPhoto(supabase, review.cafe_id);
     await recalculateCafeRating(supabase, review.cafe_id);
   }
 

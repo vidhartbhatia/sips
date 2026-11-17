@@ -20,7 +20,7 @@ export type ParsedCafe = Omit<
 
 export type ParsedReview = Omit<
   Review,
-  "id" | "cafe_id" | "author_id" | "created_at" | "updated_at"
+  "id" | "cafe_id" | "author_id" | "created_at" | "updated_at" | "verdict" | "cover_photo_id"
 >;
 
 export type ParsedWantToGo = Omit<WantToGo, "id" | "created_at">;

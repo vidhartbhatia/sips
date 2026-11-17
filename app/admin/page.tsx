@@ -100,7 +100,9 @@ export default async function AdminDashboard() {
                         visited {draft.date_visited}
                       </p>
                     </div>
-                    <SipsRating sips={draft.overall_rating} size={20} />
+                    {draft.overall_rating !== null && (
+                      <SipsRating sips={draft.overall_rating} size={20} />
+                    )}
                   </div>
                   {draft.note && (
                     <p className="mt-2 line-clamp-2 text-sm text-espresso-muted">
@@ -148,7 +150,9 @@ export default async function AdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={review.status} />
-                      <SipsRating sips={review.overall_rating} size={20} />
+                      {review.overall_rating !== null && (
+                        <SipsRating sips={review.overall_rating} size={20} />
+                      )}
                     </div>
                   </div>
                   {review.note && (

@@ -23,6 +23,11 @@ export async function recalculateCafeRating(
 
   await supabase
     .from("cafes")
-    .update({ overall_rating: averageRating((reviews ?? []).map((r) => r.overall_rating)) })
+    .update({
+      overall_rating: averageRating(
+        // Published reviews always have a score (migration 008); the filter keeps the types honest.
+        (reviews ?? []).map((r) => r.overall_rating).filter((r): r is number => r !== null),
+      ),
+    })
     .eq("id", cafeId);
 }
