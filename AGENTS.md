@@ -95,8 +95,8 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
   object **path** in the private `photos` bucket, not a URL. Queries hand out signed URLs
   (`lib/storage.ts`); never build a public URL for a review photo.
 - Geocoding goes through `lib/google/geocode.ts` only.
-- Rating recalculation lives in `recalculateRating()` (`lib/actions/reviews.ts`); zero reviews
-  → `null`, never `0`.
+- Rating recalculation lives in `recalculateCafeRating()` (`lib/ratings.ts`), shared by every
+  review mutation; zero reviews → `null`, never `0`. Keep it out of `"use server"` files.
 - Images are resized client-side before upload (`lib/image-utils.ts`, max 2000px, JPEG 0.85).
 - Framer Motion: always use `useMotionSafe()` from `lib/motion.ts` (reduced-motion).
 - Code style: ES2022+, `const`, no `any`, props interfaces, early returns.
