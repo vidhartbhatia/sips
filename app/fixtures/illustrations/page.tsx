@@ -41,7 +41,7 @@ export default function IllustrationsFixture() {
 
       <ul className="grid gap-8 sm:grid-cols-2" data-testid="slots">
         {SLOTS.map((slot) => (
-          <li key={slot} className="flex items-end gap-6" data-slot={slot}>
+          <li key={slot} className="flex flex-wrap items-end gap-6" data-slot={slot}>
             <Illustration slot={slot} className="h-auto w-[240px]" />
             <Illustration slot={slot} className="h-auto w-16" />
             <span className="font-mono text-xs text-espresso-muted">{slot}</span>

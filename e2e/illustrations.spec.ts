@@ -20,12 +20,13 @@ test("illustration fixture renders every slot without a box", async ({ page }, t
     (els as HTMLImageElement[]).map((img) => ({
       src: img.currentSrc,
       ok: img.complete && img.naturalWidth > 0,
-      drift: Math.abs(img.width / img.height - img.naturalWidth / img.naturalHeight),
+      // in px: a ratio tolerance can't tell 1px of rounding on a 13px-tall divider from a squash
+      drift: Math.abs(img.height - (img.width * img.naturalHeight) / img.naturalWidth),
     })),
   );
   for (const img of imgs) {
     expect(img.ok, img.src).toBe(true);
-    expect(img.drift, img.src).toBeLessThan(0.02);
+    expect(img.drift, img.src).toBeLessThanOrEqual(2); // both sides are rounded; a squash is tens of px
   }
 
   await expectNoHorizontalScroll(page);
