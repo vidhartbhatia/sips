@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { deletePhoto } from "@/lib/storage";
+import { syncCoverPhoto } from "@/lib/cover-photo";
 import { redirect } from "next/navigation";
 
 export async function deleteCafe(cafeId: string) {
@@ -60,6 +61,13 @@ export async function deleteReview(reviewId: string) {
     .eq("id", reviewId);
 
   if (error) return { error: error.message };
+
+  // If the cover was one of this review's photos, re-pick it from published reviews
+  if (review) {
+    await syncCoverPhoto(supabase, review.cafe_id, {
+      removedUrls: (photos ?? []).map((p) => p.photo_url),
+    });
+  }
 
   // Recalculate cafe rating
   if (review) {
