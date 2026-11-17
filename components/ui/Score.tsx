@@ -1,3 +1,4 @@
+// design-rules: enforced
 import { formatScore, formatVisits } from "@/lib/format";
 
 interface ScoreNumeralProps {

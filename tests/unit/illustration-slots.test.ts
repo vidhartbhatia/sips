@@ -22,16 +22,22 @@ describe("doodleFor", () => {
   });
 });
 
+// Contract only: K1 repoints these slots and fills doodles/divider, so no file names here.
 describe("illustration slots", () => {
-  it("point at today's files until K1", () => {
-    expect(ILLUSTRATIONS.hero.src).toBe("/illustrations/cafe-scene.svg");
-    expect(ILLUSTRATIONS.logo.src).toBe("/illustrations/coffee-cup.svg");
-    expect(ILLUSTRATIONS.empty.src).toBe("/illustrations/coffee-cup.svg");
-    expect(ILLUSTRATIONS["404"].src).toBe("/illustrations/coffee-cup.svg");
-    expect(ILLUSTRATIONS.about.src).toBe("/illustrations/cat-with-cup.svg");
-    expect(DOODLES).toEqual({});
-    expect(ORNAMENTS).toEqual({});
-    expect(DIVIDER).toBeNull();
+  const isAsset = (a: { src: string; width: number; height: number }) =>
+    a.src.startsWith("/illustrations/") && a.width > 0 && a.height > 0;
+
+  it("every page slot has an asset under /illustrations/", () => {
+    for (const slot of ["hero", "logo", "empty", "404", "about"] as const) {
+      expect(isAsset(ILLUSTRATIONS[slot]), slot).toBe(true);
+    }
+  });
+
+  it("set doodles, ornaments and the divider are valid assets", () => {
+    for (const asset of [...Object.values(DOODLES), ...Object.values(ORNAMENTS)]) {
+      expect(isAsset(asset)).toBe(true);
+    }
+    if (DIVIDER) expect(isAsset(DIVIDER)).toBe(true);
   });
 });
 

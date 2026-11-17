@@ -1,3 +1,4 @@
+// design-rules: enforced
 import Image from "next/image";
 import {
   DOODLES,
