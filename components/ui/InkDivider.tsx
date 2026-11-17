@@ -1,4 +1,21 @@
+import Image from "next/image";
+import { DIVIDER } from "@/lib/illustrations";
+
 export default function InkDivider({ className = "" }: { className?: string }) {
+  if (DIVIDER) {
+    return (
+      <Image
+        src={DIVIDER.src}
+        width={DIVIDER.width}
+        height={DIVIDER.height}
+        alt=""
+        aria-hidden="true"
+        className={`w-full ${className}`}
+        unoptimized={DIVIDER.src.endsWith(".svg")}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 800 24"
