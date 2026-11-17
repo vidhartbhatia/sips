@@ -7,7 +7,7 @@ Claude-specific setup.
 
 ## Plugins
 
-Declared in `.claude/settings.json` (auto-update on): superpowers, context7, typescript-lsp,
+Declared in `.claude/settings.json` (auto-update on): superpowers, typescript-lsp,
 impeccable, mattpocock-skills, supabase + postgres-best-practices, modern-web-guidance (Google Chrome). Trust the folder when
 prompted, then run `/plugin` to install any listed as missing.
 
