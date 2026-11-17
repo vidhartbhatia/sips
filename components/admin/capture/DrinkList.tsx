@@ -41,7 +41,7 @@ export default function DrinkList({ drinks, onChange, inputClass }: DrinkListPro
       {drinks.map((drink, i) => {
         const title = drink.name.trim() || `item ${i + 1}`;
         return (
-          <fieldset key={drink.key} className="space-y-3 rounded-xl border border-espresso/[0.12] p-4">
+          <fieldset key={drink.key} className="min-w-0 space-y-3 rounded-xl border border-espresso/[0.12] p-4">
             <legend className="sr-only">{title}</legend>
             <div className="flex items-center gap-2">
               <label className="flex-1">

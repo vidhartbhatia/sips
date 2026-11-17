@@ -14,8 +14,8 @@ interface ScoreInputProps {
  */
 export default function ScoreInput({ value, onChange, label }: ScoreInputProps) {
   return (
-    <div className="flex items-center gap-3">
-      <div role="radiogroup" aria-label={label} className="flex gap-1.5">
+    <div className="space-y-1.5">
+      <div role="radiogroup" aria-label={label} className="grid max-w-xs grid-cols-5 gap-1.5">
         {[1, 2, 3, 4, 5].map((n) => {
           const selected = value === n;
           return (
@@ -26,7 +26,7 @@ export default function ScoreInput({ value, onChange, label }: ScoreInputProps) 
               aria-checked={selected}
               aria-label={`${n} out of 5`}
               onClick={() => onChange(selected ? null : n)}
-              className={`h-12 w-12 rounded-lg border font-mono text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso ${
+              className={`h-12 rounded-lg border font-mono text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso ${
                 selected
                   ? "border-espresso bg-espresso text-cream"
                   : "border-espresso/[0.15] text-espresso hover:border-espresso/40"
