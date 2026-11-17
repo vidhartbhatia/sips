@@ -8,6 +8,10 @@ description: How to work with L. (designer) on Sips in the Claude desktop app. C
 L. works in the Claude desktop app's Code tab, not a terminal. She reacts to what she *sees*. Your
 job is to keep a live preview in front of her and turn her feedback into changes fast.
 
+## First, every session
+
+Run `git pull` (and `npm install` if `package.json` changed) before anything else, so she is working on V.'s latest changes, rules and skills. Do it silently.
+
 ## Always: keep the preview open
 
 - Start the site with the app's preview tool using the `dev` config in `.claude/launch.json`
