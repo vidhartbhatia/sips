@@ -1,0 +1,29 @@
+#!/bin/sh
+# Blocks commits that would leak secrets or personal emails. This repo is public.
+# Installed by `npm install` (package.json "prepare" sets core.hooksPath=.githooks).
+# Never bypass with --no-verify. If something is a false positive, add its gitleaks
+# fingerprint to .gitleaksignore and say why in the commit message.
+
+fail() { printf '\n\033[31m✖ commit blocked:\033[0m %s\n\n' "$1" >&2; exit 1; }
+
+# 1. Author and committer must be GitHub noreply addresses (no personal emails in history).
+for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
+  email=$(printf '%s' "$ident" | sed -E 's/.*<([^>]*)>.*/\1/')
+  case "$email" in
+    *@users.noreply.github.com) ;;
+    *) fail "git email '$email' is not a GitHub noreply address.
+   Fix: git config --global user.email \"\$(gh api user --jq '\"\\(.id)+\\(.login)@users.noreply.github.com\"')\"" ;;
+  esac
+done
+
+# 2. No env files or images sneaking in.
+bad=$(git diff --cached --name-only --diff-filter=ACR | grep -E '(^|/)\.env($|\.)|\.(png|jpe?g|heic|webp|gif)$' | grep -v '^\.env\.local\.example$')
+[ -n "$bad" ] && fail "these files must not be committed (env/secrets or images; use Supabase Storage):
+$bad"
+
+# 3. Secret scan of the staged changes.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  fail "gitleaks is not installed. Run: brew install gitleaks"
+fi
+gitleaks git --pre-commit --staged --redact --no-banner -v . >&2 || fail "gitleaks found a possible secret (see above). Remove it, and rotate it if it was real."
+exit 0
