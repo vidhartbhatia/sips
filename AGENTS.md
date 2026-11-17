@@ -54,7 +54,8 @@ blog posts, and new UI features that use the existing data.
 ## Stack
 
 - **Next.js 16** (App Router, Server Components, Server Actions), React 19, TypeScript strict
-- **Supabase**: Postgres, magic-link auth, Storage bucket `photos`
+- **Supabase**: Postgres, magic-link auth, Storage buckets `photos` (private, review photos)
+  and `blog` (public, blog images)
 - **Tailwind CSS 4** with CSS custom properties in `app/globals.css`
 - **Mapbox GL** via `react-map-gl`; **Framer Motion** for animation
 - **Vercel** hosting — `main` auto-deploys to production. **A push to `main` is a publish.**
@@ -87,9 +88,12 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
 ## Conventions (hard rules)
 
 - Public reads use the **anon** client; RLS is the guardrail. Service-role client only in
-  authenticated Server Actions.
+  authenticated Server Actions, plus one exception: `lib/storage.ts` signs photo URLs with it,
+  and public queries pass it only paths that an anon (RLS-filtered) read just returned.
 - Every Server Action calls `requireAuth()` before mutating. Never rely on middleware alone.
-- Photos column is `photo_url` (renamed from `url`).
+- Photos column is `photo_url` (renamed from `url`). It and `cafes.cover_photo_url` hold the
+  object **path** in the private `photos` bucket, not a URL. Queries hand out signed URLs
+  (`lib/storage.ts`); never build a public URL for a review photo.
 - Geocoding goes through `lib/google/geocode.ts` only.
 - Rating recalculation lives in `recalculateRating()` (`lib/actions/reviews.ts`); zero reviews
   → `null`, never `0`.

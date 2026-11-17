@@ -182,6 +182,8 @@ export default function CafeEditForm({ cafe }: CafeEditFormProps) {
                     src={photo.photo_url}
                     alt=""
                     fill
+                    // Fresh signed URL each render: skip the optimizer so tokens don't burn its quota.
+                    unoptimized
                     className="object-cover"
                     sizes="150px"
                   />

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth";
 import { syncCoverPhoto } from "@/lib/cover-photo";
+import { toStoragePath } from "@/lib/storage";
 import { geocodeAddress } from "@/lib/google/geocode";
 
 function slugify(name: string): string {
@@ -77,6 +78,8 @@ export async function updateCafe(
   }
 
   const updateData: Record<string, unknown> = { ...data };
+  // A cover is stored as a photos-bucket path (the admin UI may hand back a signed URL).
+  if ("cover_photo_url" in data) updateData.cover_photo_url = toStoragePath(data.cover_photo_url);
   if (coords) {
     updateData.lat = coords.lat;
     updateData.lng = coords.lng;

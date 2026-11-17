@@ -162,7 +162,7 @@ export default function QuickAddPage() {
         formData.append("file", resized);
         formData.append("cafeSlug", cafeSlug);
         const uploadResult = await uploadPhotoAction(formData);
-        if (uploadResult.url) photoUrls.push(uploadResult.url);
+        if (uploadResult.path) photoUrls.push(uploadResult.path);
       }
 
       // Create draft review

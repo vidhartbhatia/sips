@@ -3,10 +3,18 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      // Review photos: private bucket, served through signed URLs (lib/storage.ts).
+      // `search` is left unset because the token is in the query string.
       {
         protocol: "https",
         hostname: "qsomdozgkfvuhesodwnm.supabase.co",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/storage/v1/object/sign/photos/**",
+      },
+      // Blog images: public bucket (scripts/upload-blog-images.mjs).
+      {
+        protocol: "https",
+        hostname: "qsomdozgkfvuhesodwnm.supabase.co",
+        pathname: "/storage/v1/object/public/blog/**",
       },
     ],
   },

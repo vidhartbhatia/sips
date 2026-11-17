@@ -1,5 +1,54 @@
 import { createAdminClient } from "./admin";
 import { createClient } from "./server";
+import { signAdminPhotoUrls, signPublicPhotoUrls, signedUrlFor, type SignedUrls } from "@/lib/storage";
+
+type PublicClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Signed URLs for the covers of all published cafes.
+ *
+ * `cafes.cover_photo_url` is a public column with no RLS link to a photo, so a cover is
+ * signed only if it is a photo row that anon can read (migration 005: its review and cafe
+ * are published). Anything else renders as no cover.
+ *
+ * Every page signs the same set, so a cover gets the same URL on every page for the whole
+ * reuse window and `next/image` optimizes it once.
+ */
+async function getPublicCoverUrls(sb: PublicClient): Promise<SignedUrls> {
+  const { data: cafes, error } = await sb
+    .from("cafes")
+    .select("cover_photo_url")
+    .eq("status", "published")
+    .not("cover_photo_url", "is", null);
+  if (error) {
+    console.error("getPublicCoverUrls: cafes query failed", error);
+    return {};
+  }
+  const covers = [...new Set(cafes.map((c) => c.cover_photo_url).filter((v): v is string => !!v))];
+  if (covers.length === 0) return {};
+
+  const { data: photos, error: photosError } = await sb
+    .from("photos")
+    .select("photo_url")
+    .in("photo_url", covers);
+  if (photosError) {
+    console.error("getPublicCoverUrls: photos query failed", photosError);
+    return {};
+  }
+  return signPublicPhotoUrls(photos.map((p) => p.photo_url));
+}
+
+function withCover<T extends { cover_photo_url: string | null }>(cafe: T, urls: SignedUrls): T {
+  return { ...cafe, cover_photo_url: signedUrlFor(urls, cafe.cover_photo_url) };
+}
+
+/** Swap each photo's stored path for its signed URL; drop photos that couldn't be signed. */
+function withPhotoUrls<T extends { photo_url: string }>(photos: T[], urls: SignedUrls): T[] {
+  return photos.flatMap((p) => {
+    const url = signedUrlFor(urls, p.photo_url);
+    return url ? [{ ...p, photo_url: url }] : [];
+  });
+}
 
 export async function getCafes(opts?: {
   status?: "published" | "draft";
@@ -14,9 +63,9 @@ export async function getCafes(opts?: {
   query = query.eq("status", opts?.status ?? "published");
   if (opts?.limit) query = query.limit(opts.limit);
 
-  const { data, error } = await query;
+  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls(sb)]);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((c) => withCover(c, coverUrls));
 }
 
 export async function getCafeBySlug(slug: string) {
@@ -43,14 +92,21 @@ export async function getCafeBySlug(slug: string) {
   // Only items and photos that belong to a published review. RLS enforces this too
   // (migration 005); this is defence in depth.
   const reviewIds = (reviews ?? []).map((r) => r.id);
-  if (reviewIds.length === 0) return { ...cafe, reviews: reviews ?? [], items: [], photos: [] };
+  const publicCafe = withCover(cafe, await getPublicCoverUrls(sb));
+  if (reviewIds.length === 0) return { ...publicCafe, reviews: reviews ?? [], items: [], photos: [] };
 
   const [{ data: items }, { data: photos }] = await Promise.all([
     sb.from("items").select("*").eq("cafe_id", cafe.id).in("review_id", reviewIds),
     sb.from("photos").select("*").eq("cafe_id", cafe.id).in("review_id", reviewIds),
   ]);
+  const photoUrls = await signPublicPhotoUrls((photos ?? []).map((p) => p.photo_url));
 
-  return { ...cafe, reviews: reviews ?? [], items: items ?? [], photos: photos ?? [] };
+  return {
+    ...publicCafe,
+    reviews: reviews ?? [],
+    items: items ?? [],
+    photos: withPhotoUrls(photos ?? [], photoUrls),
+  };
 }
 
 export async function getRecentReviews(limit = 5) {
@@ -79,14 +135,15 @@ export async function getWantToGo() {
 
 export async function getCafesForMap() {
   const sb = await createClient();
-  const { data, error } = await sb
+  const query = sb
     .from("cafes")
     .select("id, name, slug, lat, lng, neighborhood, overall_rating, cover_photo_url, vibe_tags")
     .eq("status", "published")
     .not("lat", "eq", 0);
 
+  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls(sb)]);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((c) => withCover(c, coverUrls));
 }
 
 export async function getAdminStats() {
@@ -143,8 +200,18 @@ export async function getCafeBySlugAdmin(slug: string) {
     sb.from("items").select("*").eq("cafe_id", cafe.id),
     sb.from("photos").select("*").eq("cafe_id", cafe.id),
   ]);
+  // Admin sees every photo, drafts included, through fresh signed URLs.
+  const urls = await signAdminPhotoUrls([
+    cafe.cover_photo_url,
+    ...(photos ?? []).map((p) => p.photo_url),
+  ]);
 
-  return { ...cafe, reviews: reviews ?? [], items: items ?? [], photos: photos ?? [] };
+  return {
+    ...withCover(cafe, urls),
+    reviews: reviews ?? [],
+    items: items ?? [],
+    photos: withPhotoUrls(photos ?? [], urls),
+  };
 }
 
 export async function getAllCafesAdmin() {
@@ -163,5 +230,9 @@ export async function getReviewById(id: string) {
     .select("*, cafes(name, slug, neighborhood), items(*), photos(*)")
     .eq("id", id)
     .single();
-  return data;
+  if (!data) return data;
+
+  const photos = data.photos ?? [];
+  const urls = await signAdminPhotoUrls(photos.map((p) => p.photo_url));
+  return { ...data, photos: withPhotoUrls(photos, urls) };
 }

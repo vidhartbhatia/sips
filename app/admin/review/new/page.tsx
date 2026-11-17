@@ -311,7 +311,7 @@ export default function NewReviewPage() {
         formData.append("file", p.file);
         formData.append("cafeSlug", cafeSlug!);
         const result = await uploadPhotoAction(formData);
-        if (result.url) photoUrls.push(result.url);
+        if (result.path) photoUrls.push(result.path);
       }
 
       // Create review
