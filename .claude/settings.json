@@ -32,7 +32,6 @@
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "impeccable@impeccable": true,
     "mattpocock-skills@mattpocock": true,

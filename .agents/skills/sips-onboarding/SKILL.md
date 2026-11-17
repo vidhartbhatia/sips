@@ -1,6 +1,6 @@
 ---
 name: sips-onboarding
-description: One-time setup of a new Mac for working on Sips (oursips.com), mainly for L. (designer, co-owner). Use when someone says "set me up for Sips", "onboard me", "finish my Sips setup", or right after a fresh clone where .env.local or node_modules is missing.
+description: Setup (and re-run to catch up) of a Mac for working on Sips (oursips.com), mainly for L. (designer, co-owner). Use when someone says "set me up for Sips", "onboard me", "finish my Sips setup", or right after a fresh clone where .env.local or node_modules is missing.
 ---
 
 # Sips onboarding (run by the agent, hands-off for the human)
@@ -10,7 +10,7 @@ that need her: a browser login, a password prompt, or a file from V. Keep each m
 and friendly, and explain jargon in plain words. Make it feel like a guided tour, not homework.
 
 Report progress as a checklist. Skip any step that's already done. Re-running this skill is
-safe.
+safe, and it's the way to pick up new setup steps after the repo changes ("finish my Sips setup").
 
 ## 1. Tools
 
@@ -49,9 +49,10 @@ The app needs `.env.local`, which V. sends by AirDrop. Look for it in this order
 ask her to AirDrop-accept the file from V., then look again.
 
 - Move it to `~/projects/sips/.env.local` and run `chmod 600`.
-- Check that the keys are present without printing any values:
-  `grep -c '^NEXT_PUBLIC_SUPABASE_URL=\|^SUPABASE_SECRET_KEY=\|^NEXT_PUBLIC_MAPBOX_TOKEN=' .env.local`
-  should print 3.
+- Check that the keys are present without printing any values (agents can't `grep` this
+  file; that's deliberate):
+  `node --env-file=.env.local -e "console.log(['NEXT_PUBLIC_SUPABASE_URL','SUPABASE_SECRET_KEY','NEXT_PUBLIC_MAPBOX_TOKEN'].every(k=>process.env[k]))"`
+  should print `true`.
 - Never print, paste, upload or commit its contents. If she shares it in chat, tell her
   gently not to do that again.
 
@@ -64,7 +65,7 @@ claude plugin marketplace add pbakaus/impeccable
 claude plugin marketplace add mattpocock/skills
 claude plugin marketplace add supabase/agent-skills
 claude plugin marketplace add GoogleChrome/modern-web-guidance
-for p in superpowers@claude-plugins-official context7@claude-plugins-official \
+for p in superpowers@claude-plugins-official \
   typescript-lsp@claude-plugins-official impeccable@impeccable mattpocock-skills@mattpocock \
   supabase@supabase-agent-skills postgres-best-practices@supabase-agent-skills \
   modern-web-guidance@googlechrome; do claude plugin install "$p" --scope user; done
@@ -77,6 +78,10 @@ succeeds; accept that invite the same way as above), also run:
 then set `"autoUpdate": true` on the `sips-private` entry under `extraKnownMarketplaces` in
 `~/.claude/settings.json` (use `jq`; keep everything else). Third-party marketplaces don't
 auto-update by default.
+
+Documentation lookup (Context7) runs as a CLI plus skill, not a plugin:
+`npx -y ctx7@latest setup --cli --claude`. It opens a browser sign-in for her own free
+Context7 account.
 
 Tell her the plugins load in her next Claude session.
 
