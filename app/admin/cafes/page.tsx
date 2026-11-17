@@ -44,7 +44,7 @@ export default async function AdminCafes() {
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {cafes.map((cafe: any) => (
+          {cafes.map((cafe) => (
             <Link
               key={cafe.id}
               href={`/admin/cafes/${cafe.slug}/edit`}
@@ -65,7 +65,7 @@ export default async function AdminCafes() {
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-espresso-muted">
                       {cafe.neighborhood}
                     </span>
-                    {cafe.overall_rating > 0 && (
+                    {cafe.overall_rating != null && cafe.overall_rating > 0 && (
                       <>
                         <span className="text-espresso/20">|</span>
                         <SipsRating sips={cafe.overall_rating} size={20} />

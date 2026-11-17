@@ -64,7 +64,7 @@ function buildCsp(nonce: string): string {
     .join("; ");
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // P1-26: Generate a per-request nonce. Server components / future <Script>
   // tags can read it from the `x-nonce` request header.
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");

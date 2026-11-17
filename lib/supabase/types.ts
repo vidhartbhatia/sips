@@ -188,7 +188,7 @@ export type Database = {
         ];
       };
     };
-    Views: {};
-    Functions: {};
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
   };
 };

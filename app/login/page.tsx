@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -100,9 +101,9 @@ function LoginContent() {
 
         {/* Back to site */}
         <p className="mt-8 text-center text-xs text-espresso-muted">
-          <a href="/" className="hover:text-terracotta">
+          <Link href="/" className="hover:text-terracotta">
             &larr; Back to Sips
-          </a>
+          </Link>
         </p>
       </div>
     </div>

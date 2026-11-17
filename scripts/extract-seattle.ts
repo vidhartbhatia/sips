@@ -127,28 +127,6 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
-function filterCSVForSeattle(csv: string): string[] {
-  const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  // Some CSVs have a description line before the header
-  // Find header row (contains "Title")
-  let headerIdx = lines.findIndex((l) => l.toLowerCase().includes("title"));
-  if (headerIdx === -1) return [];
-
-  const dataLines = lines.slice(headerIdx + 1);
-  const seattleEntries: string[] = [];
-
-  for (const line of dataLines) {
-    const fields = parseCSVLine(line);
-    const title = fields[0] ?? "";
-    const url = fields[2] ?? "";
-    // Can't reliably geo-filter CSVs (no coords), so include all from Seattle-specific lists
-    // For generic lists, we check the URL for Seattle-area place IDs
-    if (title) seattleEntries.push(title);
-  }
-
-  return seattleEntries;
-}
-
 // ---------- Main ----------
 
 mkdirSync(OUT, { recursive: true });
@@ -236,7 +214,7 @@ for (const file of csvFiles) {
   }
   const csv = readFileSync(path, "utf-8");
   const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  let headerIdx = lines.findIndex((l) => l.toLowerCase().includes("title"));
+  const headerIdx = lines.findIndex((l) => l.toLowerCase().includes("title"));
   if (headerIdx === -1) {
     console.log(`  Skipping ${file} (no header found)`);
     continue;

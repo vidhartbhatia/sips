@@ -85,7 +85,7 @@ export default async function AdminDashboard() {
             <p className="text-sm text-espresso-muted">No drafts right now.</p>
           ) : (
             <div className="flex flex-col gap-3">
-              {drafts.map((draft: any) => (
+              {drafts.map((draft) => (
                 <Link
                   key={draft.id}
                   href={`/admin/review/${draft.id}/edit`}
@@ -131,7 +131,7 @@ export default async function AdminDashboard() {
             <p className="text-sm text-espresso-muted">No reviews yet.</p>
           ) : (
             <div className="flex flex-col gap-3">
-              {recentReviews.map((review: any) => (
+              {recentReviews.map((review) => (
                 <Link
                   key={review.id}
                   href={`/admin/review/${review.id}/edit`}

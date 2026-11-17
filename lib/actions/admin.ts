@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { deletePhoto } from "@/lib/storage";
 import { syncCoverPhoto } from "@/lib/cover-photo";
+import { recalculateCafeRating } from "@/lib/ratings";
 import { redirect } from "next/navigation";
 
 export async function deleteCafe(cafeId: string) {
@@ -67,28 +68,7 @@ export async function deleteReview(reviewId: string) {
     await syncCoverPhoto(supabase, review.cafe_id, {
       removedUrls: (photos ?? []).map((p) => p.photo_url),
     });
-  }
-
-  // Recalculate cafe rating
-  if (review) {
-    const { data: remaining } = await supabase
-      .from("reviews")
-      .select("overall_rating")
-      .eq("cafe_id", review.cafe_id)
-      .eq("status", "published");
-
-    // When zero reviews remain, overall_rating must be null (not 0) so the
-    // UI can distinguish "no reviews yet" from a literal 0-rating. Mirrors
-    // recalculateRating() in lib/actions/reviews.ts — single convention per
-    // CLAUDE.md.
-    const avg = remaining && remaining.length > 0
-      ? Math.round((remaining.reduce((s, r) => s + r.overall_rating, 0) / remaining.length) * 2) / 2
-      : null;
-
-    await supabase
-      .from("cafes")
-      .update({ overall_rating: avg })
-      .eq("id", review.cafe_id);
+    await recalculateCafeRating(supabase, review.cafe_id);
   }
 
   redirect("/admin");
