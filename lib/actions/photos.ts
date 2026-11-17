@@ -15,22 +15,23 @@ export async function uploadPhotoAction(formData: FormData) {
   const cafeSlug = formData.get("cafeSlug") as string;
 
   if (!(file instanceof File) || !cafeSlug) {
-    return { error: "File and cafeSlug are required", url: null };
+    return { error: "File and cafeSlug are required", path: null };
   }
 
   if (!ALLOWED_TYPES.has(file.type)) {
-    return { error: "Only JPEG, PNG, WebP, and HEIC images are allowed", url: null };
+    return { error: "Only JPEG, PNG, WebP, and HEIC images are allowed", path: null };
   }
 
   if (file.size > MAX_SIZE) {
-    return { error: "File must be under 10 MB", url: null };
+    return { error: "File must be under 10 MB", path: null };
   }
 
   try {
-    const url = await storageUpload(file, cafeSlug);
-    return { error: null, url };
+    // The storage path, not a URL: the bucket is private and pages sign URLs on read.
+    const path = await storageUpload(file, cafeSlug);
+    return { error: null, path };
   } catch (e) {
-    return { error: (e as Error).message, url: null };
+    return { error: (e as Error).message, path: null };
   }
 }
 
@@ -38,7 +39,7 @@ export async function deletePhotoAction(photoId: string) {
   await requireAuth();
   const supabase = createAdminClient();
 
-  // Get the photo URL first
+  // Get the photo path first
   const { data: photo } = await supabase
     .from("photos")
     .select("photo_url, cafe_id")

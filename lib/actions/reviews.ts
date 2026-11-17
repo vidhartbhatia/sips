@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { syncCoverPhoto } from "@/lib/cover-photo";
+import { toStoragePath } from "@/lib/storage";
 
 async function recalculateRating(supabase: ReturnType<typeof createAdminClient>, cafeId: string) {
   const { data: reviews } = await supabase
@@ -83,13 +84,16 @@ export async function createReview(data: {
     }
   }
 
-  // Link photos
-  if (data.photo_urls && data.photo_urls.length > 0) {
+  // Link photos. Store bare storage paths; anything that isn't a photos-bucket path is dropped.
+  const photoPaths = (data.photo_urls ?? [])
+    .map((value) => toStoragePath(value))
+    .filter((path): path is string => path !== null);
+  if (photoPaths.length > 0) {
     await supabase.from("photos").insert(
-      data.photo_urls.map((url) => ({
+      photoPaths.map((path) => ({
         cafe_id: data.cafe_id,
         review_id: review.id,
-        photo_url: url,
+        photo_url: path,
       }))
     );
   }

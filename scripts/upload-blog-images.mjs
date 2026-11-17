@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Upload blog post photos to Supabase Storage (bucket `photos`, folder blog/<slug>/) and
+// Upload blog post photos to Supabase Storage (public bucket `blog`, folder <slug>/) and
 // print the public URLs to paste into the MDX. Images never go into git.
+// Blog images are published content, so they live in their own public bucket; review photos
+// stay in the private `photos` bucket (migration 007).
 //
 // Usage: node --env-file=.env.local scripts/upload-blog-images.mjs <slug> <file> [file...]
 // Resizes to max 2000px JPEG first (macOS `sips`), matching lib/image-utils.ts.
@@ -14,6 +16,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
+const BUCKET = "blog";
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const [slug, ...files] = process.argv.slice(2);
 
@@ -38,15 +41,15 @@ for (const file of files) {
   execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "85", "-Z", "2000", file, "--out", out], {
     stdio: "ignore",
   });
-  const storagePath = `blog/${slug}/${base}.jpg`;
+  const storagePath = `${slug}/${base}.jpg`;
   const { error } = await supabase.storage
-    .from("photos")
+    .from(BUCKET)
     .upload(storagePath, readFileSync(out), { contentType: "image/jpeg", upsert: true });
   if (error) {
     console.error(`✗ ${file}: ${error.message}`);
     process.exitCode = 1;
     continue;
   }
-  const { data } = supabase.storage.from("photos").getPublicUrl(storagePath);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
   console.log(`${data.publicUrl}  # ${Math.round(statSync(out).size / 1024)}KB from ${path.basename(file)}`);
 }

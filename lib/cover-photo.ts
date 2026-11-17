@@ -1,4 +1,5 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { toStoragePath } from "@/lib/storage";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -10,6 +11,8 @@ type AdminClient = ReturnType<typeof createAdminClient>;
  * - no cover → use the oldest published-review photo, if any
  * - cover is a review photo that is no longer published → re-pick, or null
  * - cover that isn't one of the cafe's review photos (set by hand) → left alone
+ *
+ * Values are compared as storage paths, so a pre-007 full URL and its bare path match.
  *
  * Throws on database errors. Not a Server Action: callers are authenticated actions that pass the admin client.
  */
@@ -39,10 +42,12 @@ export async function syncCoverPhoto(
     .map((p) => p.photo_url);
 
   const current = cafeRes.data.cover_photo_url;
-  const reviewPhotoUrls = new Set([...photos.map((p) => p.photo_url), ...(opts.removedUrls ?? [])]);
+  const key = (value: string) => toStoragePath(value) ?? value;
+  const reviewPhotoKeys = new Set([...photos.map((p) => p.photo_url), ...(opts.removedUrls ?? [])].map(key));
+  const publishedKeys = new Set(publishedUrls.map(key));
 
   const needsPick =
-    current === null || (reviewPhotoUrls.has(current) && !publishedUrls.includes(current));
+    current === null || (reviewPhotoKeys.has(key(current)) && !publishedKeys.has(key(current)));
   if (!needsPick) return;
 
   const next = publishedUrls[0] ?? null;

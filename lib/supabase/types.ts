@@ -16,6 +16,7 @@ export type Cafe = {
   neighborhood: string;
   vibe_tags: string[];
   overall_rating: number | null;
+  /** Storage path in the private `photos` bucket (or a pre-007 public URL). Queries sign it. */
   cover_photo_url: string | null;
   google_place_id: string | null;
   status: "published" | "draft";
@@ -53,6 +54,7 @@ export type Photo = {
   id: string;
   cafe_id: string;
   review_id: string | null;
+  /** Storage path in the private `photos` bucket (or a pre-007 public URL). Queries sign it. */
   photo_url: string;
   caption: string | null;
   created_at: string;

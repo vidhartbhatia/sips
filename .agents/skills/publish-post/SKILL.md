@@ -23,8 +23,9 @@ Keep her voice: fix typos and structure, but don't rewrite her tone or opinions.
 - `.md` / `.txt`: read it directly.
 - Photos are uploaded to Supabase Storage, never committed to git:
   `node --env-file=.env.local scripts/upload-blog-images.mjs <slug> photo1.heic photo2.jpg`
-  The script resizes each photo to max 2000px JPEG and prints one public URL per photo. Use
-  those URLs in the MDX.
+  The script resizes each photo to max 2000px JPEG, uploads it to the public `blog` bucket and
+  prints one public URL per photo. Use those URLs in the MDX. Blog images are public by design;
+  review photos are private and go through the admin UI instead.
 
 ## 3. Write `content/blog/<slug>.mdx`
 
@@ -39,7 +40,7 @@ draft: false
 ---
 
 Body in Markdown. Use ## headings, short paragraphs, and images like
-![alt text](https://…supabase.co/storage/v1/object/public/photos/blog/matcha-crawl/1.jpg).
+![alt text](https://…supabase.co/storage/v1/object/public/blog/matcha-crawl/1.jpg).
 ```
 
 The slug is lowercase-kebab and matches the filename. Write alt text for every image.
