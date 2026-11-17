@@ -18,6 +18,7 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sendFailed, setSendFailed] = useState(false);
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -26,14 +27,22 @@ function LoginContent() {
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setSendFailed(false);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // Invite-only site: never create a new auth user from this form.
+        // The real control is "Allow new users to sign up" off in Supabase Auth.
+        shouldCreateUser: false,
       },
     });
     setLoading(false);
-    if (!error) setSent(true);
+    if (error) {
+      setSendFailed(true);
+      return;
+    }
+    setSent(true);
   }
 
   return (
@@ -63,6 +72,13 @@ function LoginContent() {
         {error === "auth_failed" && (
           <div className="mb-6 rounded-xl border border-terracotta/20 bg-terracotta/5 p-4 text-center text-sm text-terracotta">
             Something went wrong. Please try again.
+          </div>
+        )}
+
+        {sendFailed && (
+          <div className="mb-6 rounded-xl border border-terracotta/20 bg-terracotta/5 p-4 text-center text-sm text-terracotta">
+            We couldn&apos;t send a link. Sips is invite-only, so check the
+            address, or wait a minute and try again.
           </div>
         )}
 
