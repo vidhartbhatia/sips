@@ -38,16 +38,10 @@ export default async function AdminDashboard() {
 
         <div className="flex gap-3">
           <Link
-            href="/admin/quick-add"
-            className="inline-flex items-center gap-2 rounded-xl bg-terracotta px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-terracotta-dark"
+            href="/admin/capture"
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-terracotta-dark px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-espresso"
           >
-            <span className="text-lg">+</span> Quick Add
-          </Link>
-          <Link
-            href="/admin/review/new"
-            className="inline-flex items-center gap-2 rounded-xl border border-espresso/[0.12] px-5 py-2.5 text-sm text-espresso transition-colors hover:bg-stone"
-          >
-            Full Review
+            <span className="text-lg">+</span> New visit
           </Link>
         </div>
       </div>
@@ -122,7 +116,7 @@ export default async function AdminDashboard() {
               Recent Reviews
             </h2>
             <Link
-              href="/admin/review/new"
+              href="/admin/capture"
               className="text-sm text-terracotta hover:text-terracotta-dark"
             >
               Write new &rarr;

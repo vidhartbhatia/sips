@@ -8,33 +8,6 @@ import { syncCoverPhoto } from "@/lib/cover-photo";
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic"]);
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-export async function uploadPhotoAction(formData: FormData) {
-  await requireAuth();
-
-  const file = formData.get("file");
-  const cafeSlug = formData.get("cafeSlug") as string;
-
-  if (!(file instanceof File) || !cafeSlug) {
-    return { error: "File and cafeSlug are required", path: null };
-  }
-
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return { error: "Only JPEG, PNG, WebP, and HEIC images are allowed", path: null };
-  }
-
-  if (file.size > MAX_SIZE) {
-    return { error: "File must be under 10 MB", path: null };
-  }
-
-  try {
-    // The storage path, not a URL: the bucket is private and pages sign URLs on read.
-    const path = await storageUpload(file, cafeSlug);
-    return { error: null, path };
-  } catch (e) {
-    return { error: (e as Error).message, path: null };
-  }
-}
-
 /** Shared upload checks. A failure message is shown to the author as-is. */
 function checkImage(file: FormDataEntryValue | null): string | null {
   if (!(file instanceof File)) return "Choose a photo to upload.";

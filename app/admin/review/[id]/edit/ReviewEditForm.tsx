@@ -14,6 +14,7 @@ interface ReviewEditFormProps {
     cafe_id: string;
     overall_rating: number | null;
     note: string | null;
+    verdict: string | null;
     date_visited: string;
     status: string;
     cafes: { name: string; slug: string; neighborhood: string } | null;
@@ -33,6 +34,7 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
   const router = useRouter();
   const [rating, setRating] = useState<number | null>(review.overall_rating);
   const [note, setNote] = useState(review.note ?? "");
+  const [verdict, setVerdict] = useState(review.verdict ?? "");
   const [dateVisited, setDateVisited] = useState(review.date_visited);
   const [status, setStatus] = useState(review.status);
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,7 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
     const result = await updateReview(review.id, {
       overall_rating: rating,
       note,
+      verdict,
       date_visited: dateVisited,
       status: status as "draft" | "published",
     });
@@ -119,6 +122,23 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
               <span className="ml-2 text-sm text-espresso-muted">Not scored yet</span>
             )}
           </div>
+        </div>
+
+        {/* Verdict */}
+        <div>
+          <label
+            htmlFor="verdict"
+            className="mb-1 block font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted"
+          >
+            Verdict
+          </label>
+          <input
+            id="verdict"
+            type="text"
+            value={verdict}
+            onChange={(e) => setVerdict(e.target.value)}
+            className={`${inputClass} font-display text-lg italic`}
+          />
         </div>
 
         {/* Note */}
