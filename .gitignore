@@ -88,3 +88,9 @@ supabase/.temp/
 
 # personal agent settings
 .claude/settings.local.json
+
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/

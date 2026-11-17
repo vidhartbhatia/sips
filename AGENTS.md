@@ -67,6 +67,7 @@ npm run dev        # local dev server → http://localhost:3000
 npm run build      # production build (must pass before pushing to main)
 npm run typecheck  # tsc --noEmit (must pass)
 npm run lint       # ESLint — currently has known pre-existing errors, don't add new ones
+npm run test:e2e   # Playwright smoke suite (read-only); run `npm run build` first
 ```
 
 Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Never commit
