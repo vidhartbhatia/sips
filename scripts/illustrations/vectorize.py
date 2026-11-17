@@ -35,7 +35,8 @@ LINE_ART: dict[str, tuple[str, str]] = {
     "doodles/matcha.svg": ("doodle2-5.webp", "item"),
     "doodles/tea.svg": ("doodle2-6.webp", "item"),
     "doodles/pastry.svg": ("doodle2-7.webp", "item"),
-    "dividers/sprig.svg": ("orn1-3.webp", "item"),
+    # tiled twice: an 800-unit divider scaled to a ~1150px container doubles its stroke
+    "dividers/sprig.svg": ("orn1-3.webp", "tile2"),
     "ornaments/ornament-1.svg": ("orn1-5.webp", "item"),
     "ornaments/ornament-2.svg": ("orn1-4.webp", "item"),
 }
@@ -63,6 +64,8 @@ def load(set_dir: Path, src: str, kind: str) -> np.ndarray:
     im = Image.open(set_dir / src)
     if kind == "raw":
         rgba = knockout(np.asarray(im.convert("RGB")).astype(np.float32))
+    elif kind == "tile2":
+        return tile2(load(set_dir, src, "item"))
     else:
         rgba = np.asarray(im.convert("RGBA")).astype(np.float32)
     # crop to content
@@ -71,6 +74,18 @@ def load(set_dir: Path, src: str, kind: str) -> np.ndarray:
     y0, y1 = max(0, ys.min() - pad), min(rgba.shape[0], ys.max() + 1 + pad)
     x0, x1 = max(0, xs.min() - pad), min(rgba.shape[1], xs.max() + 1 + pad)
     return rgba[y0:y1, x0:x1]
+
+
+def tile2(rgba: np.ndarray, pad: int = 12) -> np.ndarray:
+    """Two copies end to end; each copy's last ink column meets the next one's first."""
+    h, w = rgba.shape[:2]
+    off = w - 2 * pad - 1
+    out = np.zeros((h, off + w, 4), np.float32)
+    for x0 in (0, off):
+        region = out[:, x0:x0 + w]
+        take = rgba[..., 3] > region[..., 3]
+        region[take] = rgba[take]
+    return out
 
 
 def upscale(rgba: np.ndarray, target: int) -> np.ndarray:
@@ -236,7 +251,7 @@ def main() -> None:
         dst = out_dir / name
         dst.parent.mkdir(parents=True, exist_ok=True)
         rgba = load(set_dir, src, kind)
-        target = 1000 if kind == "raw" else 800
+        target = {"raw": 1000, "tile2": 1600}.get(kind, 800)
         dst.write_text(trace(rgba, target))
         svgo(dst)
         print(f"{name:28s} {dst.stat().st_size / 1024:6.1f} KB")
