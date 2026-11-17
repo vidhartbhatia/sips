@@ -225,7 +225,6 @@ export function parseSavedListCSV(csv: string): ImportRow[] {
   for (const line of dataLines) {
     const fields = parseCSVLine(line);
     const title = fields[0] ?? "";
-    const url = fields[1] ?? "";
     const note = fields[2] ?? "";
 
     if (!title) continue;

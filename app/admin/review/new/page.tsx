@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -647,6 +647,7 @@ export default function NewReviewPage() {
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {photos.map((p, idx) => (
                   <div key={idx} className="group relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview from URL.createObjectURL; next/image can't optimize it */}
                     <img
                       src={p.preview}
                       alt={`Preview ${idx + 1}`}

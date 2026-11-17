@@ -29,6 +29,8 @@ export default function Header() {
   async function handleSignOut() {
     await signOutAction();
     setIsLoggedIn(false);
+    // Full reload on purpose: drops any client-cached authed RSC payloads after sign-out.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard navigation is intentional
     window.location.href = "/";
   }
 

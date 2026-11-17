@@ -77,7 +77,7 @@ async function main() {
 
   let cafesCreated = 0;
   let reviewsCreated = 0;
-  let errors: string[] = [];
+  const errors: string[] = [];
 
   const allPlaces = [
     ...CAFES.map((c) => ({ ...c, type: "cafe" as const })),

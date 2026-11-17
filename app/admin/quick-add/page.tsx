@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,7 +56,6 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 // ── Main page ──────────────────────────────────────────
 
 export default function QuickAddPage() {
-  const router = useRouter();
   const [step, setStep] = useState(1);
 
   // Step 1: Cafe
@@ -414,6 +412,7 @@ export default function QuickAddPage() {
                 <div className="mt-10">
                   {photoPreview ? (
                     <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview from URL.createObjectURL; next/image can't optimize it */}
                       <img
                         src={photoPreview}
                         alt="Preview"
@@ -562,6 +561,7 @@ export default function QuickAddPage() {
 
                   {photoPreview && (
                     <div className="overflow-hidden rounded-xl border border-espresso/[0.08]">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview from URL.createObjectURL; next/image can't optimize it */}
                       <img
                         src={photoPreview}
                         alt="Preview"
