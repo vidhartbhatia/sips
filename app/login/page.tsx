@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -14,17 +14,33 @@ export default function LoginPage() {
   );
 }
 
+const inputClass =
+  "w-full rounded-lg border border-espresso/[0.12] bg-cream px-3 py-2.5 text-espresso placeholder:text-espresso-muted/50 focus:border-terracotta focus:outline-none focus:ring-1 focus:ring-terracotta/30";
+const labelClass =
+  "mb-1 block font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted";
+const primaryButtonClass =
+  "mt-3 w-full rounded-xl bg-terracotta px-4 py-3 text-sm text-cream transition-colors hover:bg-terracotta-dark disabled:opacity-50";
+const textButtonClass =
+  "text-xs text-espresso-muted underline decoration-espresso/20 underline-offset-4 hover:text-terracotta";
+
 function LoginContent() {
   const [email, setEmail] = useState("");
+  // "code": the 6-digit fallback, for when the magic link opens in a different browser
+  // (e.g. a mail app's in-app browser) and can't complete there.
+  const [mode, setMode] = useState<"link" | "code">("link");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sendFailed, setSendFailed] = useState(false);
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [codeFailed, setCodeFailed] = useState(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
   const supabase = createClient();
 
-  async function handleMagicLink(e: React.FormEvent) {
+  async function handleMagicLink(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setSendFailed(false);
@@ -43,6 +59,28 @@ function LoginContent() {
       return;
     }
     setSent(true);
+    setMode("code");
+  }
+
+  async function handleCode(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setVerifying(true);
+    setCodeFailed(false);
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+    if (error) {
+      setVerifying(false);
+      setCodeFailed(true);
+      return;
+    }
+    // The session cookie is set now; the server renders /admin with it.
+    router.push("/admin");
+  }
+
+  function startOver() {
+    setMode("link");
+    setSent(false);
+    setCode("");
+    setCodeFailed(false);
   }
 
   return (
@@ -82,36 +120,99 @@ function LoginContent() {
           </div>
         )}
 
-        {sent ? (
-          <div className="rounded-xl border border-sage/30 bg-sage/5 p-6 text-center">
-            <p className="font-heading text-2xl text-espresso">Check your email</p>
-            <p className="mt-2 text-sm text-espresso-muted">
-              We sent a magic link to <strong>{email}</strong>
+        {mode === "code" ? (
+          <>
+            {sent && (
+              <div className="mb-6 rounded-xl border border-sage/30 bg-sage/5 p-6 text-center">
+                <p className="font-heading text-2xl text-espresso">Check your email</p>
+                <p className="mt-2 text-sm text-espresso-muted">
+                  We sent a magic link to <strong>{email}</strong>. If it opens
+                  somewhere else, enter the code from the email here.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleCode}>
+              {!sent && (
+                <div className="mb-4">
+                  <label htmlFor="login-email" className={labelClass}>
+                    Email
+                  </label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    required
+                    className={inputClass}
+                  />
+                </div>
+              )}
+              <label htmlFor="login-code" className={labelClass}>
+                Enter the 6-digit code
+              </label>
+              <input
+                id="login-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                // Digits only: codes pasted from an email can carry spaces.
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                minLength={6}
+                maxLength={10}
+                required
+                aria-invalid={codeFailed}
+                aria-describedby={codeFailed ? "login-code-error" : undefined}
+                className={`${inputClass} text-center font-mono text-lg tracking-[0.3em]`}
+              />
+              <p
+                id="login-code-error"
+                role="alert"
+                className="mt-2 text-center text-sm text-terracotta empty:hidden"
+              >
+                {codeFailed ? "That code didn't work. Request a new link." : ""}
+              </p>
+              <button type="submit" disabled={verifying} className={primaryButtonClass}>
+                {verifying ? "Checking..." : "Sign in with code"}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center">
+              <button type="button" onClick={startOver} className={textButtonClass}>
+                Send a new link
+              </button>
             </p>
-          </div>
+          </>
         ) : (
           <>
             {/* Magic link */}
             <form onSubmit={handleMagicLink}>
-              <label className="mb-1 block font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
+              <label htmlFor="login-email" className={labelClass}>
                 Email
               </label>
               <input
+                id="login-email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
                 required
-                className="w-full rounded-lg border border-espresso/[0.12] bg-cream px-3 py-2.5 text-espresso placeholder:text-espresso-muted/50 focus:border-terracotta focus:outline-none focus:ring-1 focus:ring-terracotta/30"
+                className={inputClass}
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-3 w-full rounded-xl bg-terracotta px-4 py-3 text-sm text-cream transition-colors hover:bg-terracotta-dark disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading} className={primaryButtonClass}>
                 {loading ? "Sending..." : "Send magic link"}
               </button>
             </form>
+
+            <p className="mt-6 text-center">
+              <button type="button" onClick={() => setMode("code")} className={textButtonClass}>
+                Already have a code?
+              </button>
+            </p>
           </>
         )}
 
