@@ -1,6 +1,6 @@
 export type Profile = {
   id: string;
-  display_name: string;
+  display_name: string | null;
   avatar_url: string | null;
   role: "admin" | "reader";
   created_at: string;
@@ -71,15 +71,17 @@ export type WantToGo = {
 };
 
 // Joined types for common queries
+export type ReviewAuthor = Pick<Profile, "display_name">;
+
 export type CafeWithReviews = Cafe & {
-  reviews: (Review & { author: Profile })[];
+  reviews: (Review & { author: ReviewAuthor | null })[];
   items: Item[];
   photos: Photo[];
 };
 
 export type ReviewWithDetails = Review & {
   cafe: Cafe;
-  author: Profile;
+  author: ReviewAuthor | null;
   items: Item[];
   photos: Photo[];
 };
@@ -90,7 +92,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Profile;
-        Insert: Omit<Profile, "created_at">;
+        Insert: Pick<Profile, "id"> & Partial<Omit<Profile, "id" | "created_at">>;
         Update: Partial<Omit<Profile, "id" | "created_at">>;
         Relationships: [];
       };

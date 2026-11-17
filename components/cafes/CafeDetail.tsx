@@ -21,6 +21,7 @@ interface CafeReview {
   date_visited: string;
   overall_rating: number;
   note: string;
+  author?: { display_name: string | null } | null;
 }
 
 interface CafePhoto {
@@ -39,6 +40,21 @@ interface Cafe {
   reviews: CafeReview[];
   items: CafeItem[];
   photos: CafePhoto[];
+}
+
+interface ReviewBylineProps {
+  name: string | null | undefined;
+}
+
+/** "— V." signature under a review (ship-plan R7). Unattributed reviews show nothing. */
+function ReviewByline({ name }: ReviewBylineProps) {
+  const trimmed = name?.trim();
+  if (!trimmed) return null;
+  return (
+    <p className="mt-2 text-right font-heading text-2xl leading-none text-espresso-muted">
+      — {trimmed}
+    </p>
+  );
 }
 
 const stagger = {
@@ -217,6 +233,7 @@ export default function CafeDetail({ cafe }: { cafe: Cafe }) {
                   <p className="mt-3 leading-relaxed text-espresso-muted">
                     {review.note}
                   </p>
+                  <ReviewByline name={review.author?.display_name} />
                 </motion.div>
               ))}
             </div>

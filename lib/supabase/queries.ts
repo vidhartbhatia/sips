@@ -30,11 +30,19 @@ export async function getCafeBySlug(slug: string) {
 
   if (error) return null;
 
-  const [{ data: reviews }, { data: items }, { data: photos }] = await Promise.all([
-    sb.from("reviews").select("*").eq("cafe_id", cafe.id).eq("status", "published").order("date_visited", { ascending: false }),
+  const [{ data: reviews, error: reviewsError }, { data: items }, { data: photos }] = await Promise.all([
+    sb
+      .from("reviews")
+      .select("*, author:profiles(display_name)")
+      .eq("cafe_id", cafe.id)
+      .eq("status", "published")
+      .order("date_visited", { ascending: false }),
     sb.from("items").select("*").eq("cafe_id", cafe.id),
     sb.from("photos").select("*").eq("cafe_id", cafe.id),
   ]);
+
+  // Don't let a failed reviews query (e.g. the author embed) look like "no reviews" silently.
+  if (reviewsError) console.error("getCafeBySlug: reviews query failed", reviewsError);
 
   return { ...cafe, reviews: reviews ?? [], items: items ?? [], photos: photos ?? [] };
 }
