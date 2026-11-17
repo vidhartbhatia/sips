@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
+import { syncCoverPhoto } from "@/lib/cover-photo";
 
 async function recalculateRating(supabase: ReturnType<typeof createAdminClient>, cafeId: string) {
   const { data: reviews } = await supabase
@@ -91,21 +92,10 @@ export async function createReview(data: {
         photo_url: url,
       }))
     );
-
-    // Set first photo as cover if cafe has none
-    const { data: cafe } = await supabase
-      .from("cafes")
-      .select("cover_photo_url")
-      .eq("id", data.cafe_id)
-      .single();
-
-    if (cafe && !cafe.cover_photo_url) {
-      await supabase
-        .from("cafes")
-        .update({ cover_photo_url: data.photo_urls[0] })
-        .eq("id", data.cafe_id);
-    }
   }
+
+  // Cover comes only from published-review photos (a draft's photos stay off the public cafe row)
+  await syncCoverPhoto(supabase, data.cafe_id);
 
   // Recalculate rating if published
   if (data.status === "published") {
@@ -148,6 +138,8 @@ export async function updateReview(
 
     if (review) {
       await recalculateRating(supabase, review.cafe_id);
+      // Unpublishing must take this review's photo off the public cafe cover
+      await syncCoverPhoto(supabase, review.cafe_id);
     }
   }
 

@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadPhoto as storageUpload, deletePhoto as storageDelete } from "@/lib/storage";
 import { requireAuth } from "@/lib/auth";
+import { syncCoverPhoto } from "@/lib/cover-photo";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic"]);
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -40,7 +41,7 @@ export async function deletePhotoAction(photoId: string) {
   // Get the photo URL first
   const { data: photo } = await supabase
     .from("photos")
-    .select("photo_url")
+    .select("photo_url, cafe_id")
     .eq("id", photoId)
     .single();
 
@@ -58,6 +59,10 @@ export async function deletePhotoAction(photoId: string) {
     .from("photos")
     .delete()
     .eq("id", photoId);
+
+  if (!error) {
+    await syncCoverPhoto(supabase, photo.cafe_id, { removedUrls: [photo.photo_url] });
+  }
 
   return { error: error?.message ?? null };
 }
