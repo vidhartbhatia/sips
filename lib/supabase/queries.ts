@@ -1,41 +1,65 @@
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./admin";
 import { createClient } from "./server";
-import { signAdminPhotoUrls, signPublicPhotoUrls, signedUrlFor, type SignedUrls } from "@/lib/storage";
+import type { Database } from "./types";
+import {
+  signAdminPhotoUrls,
+  signPublicPhotoUrls,
+  signedUrlFor,
+  toStoragePath,
+  type SignedUrls,
+} from "@/lib/storage";
 
-type PublicClient = Awaited<ReturnType<typeof createClient>>;
+/**
+ * A sessionless anon client: exactly what a logged-out visitor's RLS allows. The cookie
+ * client in ./server carries the viewer's session, and for an admin RLS also returns drafts.
+ */
+function createAnonClient() {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+}
 
 /**
  * Signed URLs for the covers of all published cafes.
  *
  * `cafes.cover_photo_url` is a public column with no RLS link to a photo, so a cover is
- * signed only if it is a photo row that anon can read (migration 005: its review and cafe
- * are published). Anything else renders as no cover.
+ * signed only if it is one of that cafe's photos that a logged-out visitor can read
+ * (migration 005: its review and cafe are published). Anything else renders as no cover.
+ * Values are matched as storage paths, so a pre-007 URL and its bare path are the same.
  *
  * Every page signs the same set, so a cover gets the same URL on every page for the whole
  * reuse window and `next/image` optimizes it once.
  */
-async function getPublicCoverUrls(sb: PublicClient): Promise<SignedUrls> {
-  const { data: cafes, error } = await sb
+async function getPublicCoverUrls(): Promise<SignedUrls> {
+  const anon = createAnonClient();
+  const { data: cafes, error } = await anon
     .from("cafes")
-    .select("cover_photo_url")
+    .select("id, cover_photo_url")
     .eq("status", "published")
     .not("cover_photo_url", "is", null);
   if (error) {
     console.error("getPublicCoverUrls: cafes query failed", error);
     return {};
   }
-  const covers = [...new Set(cafes.map((c) => c.cover_photo_url).filter((v): v is string => !!v))];
-  if (covers.length === 0) return {};
+  if (cafes.length === 0) return {};
 
-  const { data: photos, error: photosError } = await sb
+  const { data: photos, error: photosError } = await anon
     .from("photos")
-    .select("photo_url")
-    .in("photo_url", covers);
+    .select("cafe_id, photo_url")
+    .in("cafe_id", cafes.map((c) => c.id));
   if (photosError) {
     console.error("getPublicCoverUrls: photos query failed", photosError);
     return {};
   }
-  return signPublicPhotoUrls(photos.map((p) => p.photo_url));
+
+  const visible = new Set(photos.map((p) => `${p.cafe_id}:${toStoragePath(p.photo_url)}`));
+  const covers = cafes
+    .map((c) => toStoragePath(c.cover_photo_url))
+    .filter((path, i): path is string => path !== null && visible.has(`${cafes[i].id}:${path}`));
+  return signPublicPhotoUrls(covers);
 }
 
 function withCover<T extends { cover_photo_url: string | null }>(cafe: T, urls: SignedUrls): T {
@@ -63,7 +87,7 @@ export async function getCafes(opts?: {
   query = query.eq("status", opts?.status ?? "published");
   if (opts?.limit) query = query.limit(opts.limit);
 
-  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls(sb)]);
+  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls()]);
   if (error) throw error;
   return (data ?? []).map((c) => withCover(c, coverUrls));
 }
@@ -92,7 +116,7 @@ export async function getCafeBySlug(slug: string) {
   // Only items and photos that belong to a published review. RLS enforces this too
   // (migration 005); this is defence in depth.
   const reviewIds = (reviews ?? []).map((r) => r.id);
-  const publicCafe = withCover(cafe, await getPublicCoverUrls(sb));
+  const publicCafe = withCover(cafe, await getPublicCoverUrls());
   if (reviewIds.length === 0) return { ...publicCafe, reviews: reviews ?? [], items: [], photos: [] };
 
   const [{ data: items }, { data: photos }] = await Promise.all([
@@ -141,7 +165,7 @@ export async function getCafesForMap() {
     .eq("status", "published")
     .not("lat", "eq", 0);
 
-  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls(sb)]);
+  const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls()]);
   if (error) throw error;
   return (data ?? []).map((c) => withCover(c, coverUrls));
 }
