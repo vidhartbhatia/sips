@@ -72,7 +72,11 @@ for p in superpowers@claude-plugins-official context7@claude-plugins-official \
 
 If she has access to the private companion repo (`gh repo view vidhartbhatia/sips-private`
 succeeds; accept that invite the same way as above), also run:
-`claude plugin marketplace add vidhartbhatia/sips-private && claude plugin install sips-ops@sips-private`.
+`gh auth setup-git` (so git can read the private repo), then
+`claude plugin marketplace add vidhartbhatia/sips-private && claude plugin install sips-ops@sips-private --scope user`,
+then set `"autoUpdate": true` on the `sips-private` entry under `extraKnownMarketplaces` in
+`~/.claude/settings.json` (use `jq`; keep everything else). Third-party marketplaces don't
+auto-update by default.
 
 Tell her the plugins load in her next Claude session.
 
