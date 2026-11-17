@@ -127,6 +127,24 @@ Stories (layout B) are MDX files in `content/blog/`, written at the laptop with 
     continuous contours, no shading, no hatching, no fills, no texture, no text. Three-quarter
     view from slightly above, minimal detail, generous spacing."
   - The owner picks from the candidates before anything ships.
+- **Illustration direction (owner decision, 2026-11-17, after comparing samples):**
+  - Style B: espresso ink (`#2C2420`) in **clean, smooth, confident fineliner lines** (round-1
+    sample B; the rougher round-2 line was rejected), with a subtle hand-drawn quality but no
+    sketchy strokes. Accents are flat and sparing: **sage green `#8BAA8F` and terracotta
+    `#C4735B`**. The theme is coffee **and** matcha: matcha is sage, coffee is espresso or
+    terracotta.
+  - **Signature hero:** an ink-and-watercolour scene (rainy Seattle window, cortado and iced
+    matcha, notebook, plants) in the palette. It must **blend into the home page**, not sit in a
+    box: soft edges fading into cream, no frame, and the composition leaves room for the
+    headline.
+  - **One aesthetic across the site:** add the same-pen supporting assets that make the page feel
+    designed rather than templated:
+    - small drink and category doodles (coffee, matcha, tea, pastry; a cocktail glass later);
+    - hand-drawn dividers;
+    - a few section ornaments;
+    - an About illustration and the empty-state and 404 spots.
+  - Each asset gets 2–3 candidates; the owner picks.
+  - This supersedes the 4-asset list above.
 - **Photo guidance for L.** (goes into her skills): window light, no flash or filters. The hero
   is landscape and cropped 3:2. Drinks are portrait 4:5 at about 45°. Aim for three or more
   photos per review.
