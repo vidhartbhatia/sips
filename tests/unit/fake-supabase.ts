@@ -1,6 +1,7 @@
 /**
  * A tiny in-memory stand-in for the supabase-js query builder: just the calls
- * lib/cover-photo.ts makes (select, eq, is, order, single, update). Records updates.
+ * lib/cover-photo.ts and the review actions make (select, eq, is, order, single, update,
+ * insert). Records updates; inserted rows get an `id` and land in `tables`.
  */
 type Row = Record<string, unknown>;
 type Tables = Record<string, Row[]>;
@@ -16,6 +17,7 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
   private orderBy: { col: string; ascending: boolean } | null = null;
   private one = false;
   private updateValues: Row | null = null;
+  private inserted: Row[] | null = null;
 
   constructor(
     private client: FakeClient,
@@ -23,6 +25,15 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
   ) {}
 
   select() {
+    return this;
+  }
+  insert(values: Row | Row[]) {
+    const rows = (Array.isArray(values) ? values : [values]).map((row) => ({
+      id: `${this.table}-${(this.client.tables[this.table] ?? []).length + 1}`,
+      ...row,
+    }));
+    (this.client.tables[this.table] ??= []).push(...rows);
+    this.inserted = rows;
     return this;
   }
   update(values: Row) {
@@ -60,6 +71,7 @@ class Builder implements PromiseLike<{ data: unknown; error: null }> {
   }
 
   private run(): { data: unknown; error: null } {
+    if (this.inserted) return { data: this.one ? this.inserted[0] : this.inserted, error: null };
     const rows = this.matching();
     if (this.updateValues) {
       this.client.updates.push({ table: this.table, values: this.updateValues, filters: this.filters });

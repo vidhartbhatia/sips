@@ -108,6 +108,18 @@ describe("syncCoverPhoto", () => {
     expect(await coverAfterSync(client)).toBeNull();
   });
 
+  it("null when the latest published visit has no photos", async () => {
+    const client = setup(
+      [
+        { id: "v1", status: "published", date_visited: "2026-10-01", cover_photo_id: "p1" },
+        { id: "v2", status: "published", date_visited: "2026-11-01", cover_photo_id: null },
+      ],
+      [{ id: "p1", review_id: "v1", created_at: "1" }],
+      "cafes/c/p1.jpg",
+    );
+    expect(await coverAfterSync(client)).toBeNull();
+  });
+
   it("doesn't write when the cover is already right", async () => {
     const client = setup(
       [{ id: "v1", status: "published", date_visited: "2026-10-01", cover_photo_id: "p1" }],

@@ -154,7 +154,10 @@ export async function createReview(data: {
   const user = await requireAuth();
   const supabase = createAdminClient();
 
-  if (data.status === "published") {
+  // Explicit status, never the column default ('published'): a missing or unknown value
+  // from the client saves a draft.
+  const status = data.status === "published" ? "published" : "draft";
+  if (status === "published") {
     const check = canPublish({ overall_rating: data.overall_rating }, data.items ?? []);
     if (!check.ok) return { error: check.reason, review: null };
   }
@@ -168,7 +171,7 @@ export async function createReview(data: {
       overall_rating: data.overall_rating,
       note: data.note,
       date_visited: data.date_visited,
-      status: data.status,
+      status,
     })
     .select()
     .single();
@@ -213,7 +216,7 @@ export async function createReview(data: {
   await syncCoverPhoto(supabase, data.cafe_id);
 
   // Recalculate rating if published
-  if (data.status === "published") {
+  if (status === "published") {
     await recalculateCafeRating(supabase, data.cafe_id);
   }
 

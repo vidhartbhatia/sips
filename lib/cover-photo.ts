@@ -7,23 +7,21 @@ type VisitPhoto = { id: string; review_id: string | null; photo_url: string; cre
 
 /**
  * The cafe cover for a set of published visits: the latest visit's chosen cover
- * (`reviews.cover_photo_id`), else that visit's oldest photo. A visit with no photos
- * hands over to the visit before it. A cover id that isn't one of the visit's own
- * photos is ignored, so a draft's photo can't become the public cover.
+ * (`reviews.cover_photo_id`), else that visit's oldest photo, else null. Only the latest
+ * visit counts (spec: the cafe cover is the latest published visit's cover). A cover id
+ * that isn't one of that visit's own photos is ignored, so a draft's photo can't become
+ * the public cover.
  */
 export function pickCafeCover(published: readonly Visit[], photos: readonly VisitPhoto[]): string | null {
-  const latestFirst = [...published].sort(
+  const latest = [...published].sort(
     (a, b) => b.date_visited.localeCompare(a.date_visited) || b.created_at.localeCompare(a.created_at),
-  );
-  for (const visit of latestFirst) {
-    const own = photos
-      .filter((p) => p.review_id === visit.id)
-      .sort((a, b) => a.created_at.localeCompare(b.created_at));
-    if (own.length === 0) continue;
-    const chosen = own.find((p) => p.id === visit.cover_photo_id);
-    return (chosen ?? own[0]).photo_url;
-  }
-  return null;
+  )[0];
+  if (!latest) return null;
+  const own = photos
+    .filter((p) => p.review_id === latest.id)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const chosen = own.find((p) => p.id === latest.cover_photo_id);
+  return (chosen ?? own[0])?.photo_url ?? null;
 }
 
 /**
