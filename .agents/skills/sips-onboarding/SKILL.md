@@ -20,7 +20,7 @@ Check first, then install only what's missing:
   she clicks Install and waits a few minutes.
 - `brew` missing: install Homebrew from https://brew.sh. It asks for her Mac password in the
   terminal, so tell her that's expected.
-- `brew install node gh` (Node 22+ is fine).
+- `brew install node gh gitleaks` (Node 22+ is fine; gitleaks powers the pre-commit secret check).
 
 ## 2. GitHub
 

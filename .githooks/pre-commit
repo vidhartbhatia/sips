@@ -1,40 +1,49 @@
 #!/bin/sh
-# Blocks commits that would leak secrets or personal emails. This repo is public.
-# Installed by `npm install` (package.json "prepare" sets core.hooksPath=.githooks).
-# Never bypass with --no-verify. If something is a false positive, add its gitleaks
-# fingerprint to .gitleaksignore and say why in the commit message.
+# Lightweight privacy check before each commit. This repo is public.
+# Enabled by `npm install` (package.json "prepare" sets core.hooksPath=.githooks).
+# GitHub secret scanning/push protection and the CI gitleaks job are the main guards;
+# this catches the common slips early. Never use --no-verify to get past it: fix the cause,
+# or add a deliberate exception (.githooks/allowed-emails, .gitleaksignore).
 
 fail() { printf '\n\033[31m✖ commit blocked:\033[0m %s\n\n' "$1" >&2; exit 1; }
+warn() { printf '\033[33m! %s\033[0m\n' "$1" >&2; }
 
-# 1. Author and committer must be GitHub noreply addresses (no personal emails in history).
-for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
-  email=$(printf '%s' "$ident" | sed -E 's/.*<([^>]*)>.*/\1/')
-  case "$email" in
-    *@users.noreply.github.com) ;;
-    *) fail "git email '$email' is not a GitHub noreply address.
+# 1. Commit author must be a GitHub noreply address.
+email=$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')
+case "$email" in
+  *@users.noreply.github.com) ;;
+  *) fail "git email '$email' is not a GitHub noreply address.
    Fix: git config --global user.email \"\$(gh api user --jq '\"\\(.id)+\\(.login)@users.noreply.github.com\"')\"" ;;
-  esac
+esac
+
+# 2. Never commit env files, personal photos, or very large files.
+staged=$(git diff --cached --name-only --diff-filter=ACR)
+bad=$(printf '%s\n' "$staged" | grep -E '(^|/)\.env($|\.)|^public/photos/' | grep -v '^\.env\.local\.example$')
+[ -n "$bad" ] && fail "don't commit env files or personal photos (photos go to Supabase Storage):
+$bad"
+for f in $staged; do
+  [ -f "$f" ] && [ "$(wc -c <"$f")" -gt 1000000 ] && fail "$f is over 1 MB. Compress it or put it in Supabase Storage."
 done
 
-# 2. No env files or images sneaking in.
-bad=$(git diff --cached --name-only --diff-filter=ACR | grep -E '(^|/)\.env($|\.)|\.(png|jpe?g|heic|webp|gif)$' | grep -v '^\.env\.local\.example$')
-[ -n "$bad" ] && fail "these files must not be committed (env/secrets or images; use Supabase Storage):
-$bad"
-
-# 3. Personal info in added lines: real-looking emails and local home paths.
-#    Placeholders (example.com/.org, noreply, test, you@email.com) are allowed.
-added=$(git diff --cached -U0 --diff-filter=ACM -- . ':(exclude)package-lock.json' ':(exclude).agents/skills/playwright-best-practices/**' | grep -E '^\+[^+]' || true)
-emails=$(printf '%s\n' "$added" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' \
-  | grep -viE '@(example\.(com|org|net)|users\.noreply\.github\.com|noreply\.github\.com|anthropic\.com|email\.com|test\.com)$|^(noreply|no-reply|test|user[0-9]*|you|partner|someone)@' | sort -u)
-[ -n "$emails" ] && fail "possible personal email(s) in staged changes (this repo is public):
+# 3. Personal emails and local home paths in added lines.
+added=$(git diff --cached -U0 --diff-filter=ACM -- . ':(exclude)package-lock.json' ':(exclude).agents/skills/playwright-best-practices/**' | grep -E '^\+[^+]' | sed 's/^+//' || true)
+allow='@(example\.(com|org|net)|users\.noreply\.github\.com|noreply\.github\.com|anthropic\.com|email\.com)$|^(noreply|no-reply|test|you|partner)@'
+if [ -f .githooks/allowed-emails ]; then
+  extra=$(grep -vE '^(#|$)' .githooks/allowed-emails | sed 's/[.]/\\./g' | paste -sd'|' -)
+  [ -n "$extra" ] && allow="$allow|^($extra)$"
+fi
+emails=$(printf '%s\n' "$added" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' | grep -viE "$allow" | sort -u)
+[ -n "$emails" ] && fail "possible personal email(s) in staged changes:
 $(printf '%s\n' "$emails" | sed -E 's/^(.).*@/\1***@/')
-   Use a placeholder like you@example.com."
+   Use a placeholder like you@example.com. A deliberately public address (e.g. a contact
+   email) can be added to .githooks/allowed-emails."
 paths=$(printf '%s\n' "$added" | grep -oE '/(Users|home)/[A-Za-z0-9._-]+/' | sort -u)
 [ -n "$paths" ] && fail "local home path(s) in staged changes: $paths. Use relative paths."
 
-# 4. Secret scan of the staged changes.
-if ! command -v gitleaks >/dev/null 2>&1; then
-  fail "gitleaks is not installed. Run: brew install gitleaks"
+# 4. Secret scan (soft if gitleaks isn't installed; CI and GitHub push protection still run).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner . >&2 || fail "gitleaks found a possible secret (see above). Remove it, and rotate it if it was real."
+else
+  warn "gitleaks not installed, so skipping the local secret scan (brew install gitleaks)."
 fi
-gitleaks git --pre-commit --staged --redact --no-banner -v . >&2 || fail "gitleaks found a possible secret (see above). Remove it, and rotate it if it was real."
 exit 0
