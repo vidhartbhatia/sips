@@ -52,32 +52,53 @@ jobs:
       SUPABASE_SECRET_KEY: placeholder
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
+      # Fork and Dependabot PRs may not get repo variables. Skip those with a notice
+      # rather than going red; anywhere else a missing variable is a real error.
+      # (No hardcoded fallback: the project ref is kept out of the repo on purpose.)
       - name: Check public variables are set
+        id: vars
+        env:
+          UNTRUSTED_PR: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || github.actor == 'dependabot[bot]') }}
         run: |
+          missing=""
           for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY NEXT_PUBLIC_MAPBOX_TOKEN; do
-            [ -n "${!v}" ] || { echo "::error::Actions variable $v is not set"; exit 1; }
+            [ -n "${!v}" ] || missing="$missing $v"
           done
+          if [ -z "$missing" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$UNTRUSTED_PR" = "true" ]; then
+            echo "::notice::Smoke tests skipped: Actions variables unavailable to this PR (fork or Dependabot):$missing"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::Actions variables not set:$missing"
+          exit 1
       - uses: actions/checkout@v4
+        if: steps.vars.outputs.run == 'true'
       - uses: actions/setup-node@v4
+        if: steps.vars.outputs.run == 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        if: steps.vars.outputs.run == 'true'
       - name: Cache Playwright browsers
         id: pw-cache
+        if: steps.vars.outputs.run == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Chromium
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+        if: steps.vars.outputs.run == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
       - name: Install Chromium OS dependencies
-        if: steps.pw-cache.outputs.cache-hit == 'true'
+        if: steps.vars.outputs.run == 'true' && steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - name: Build
+        if: steps.vars.outputs.run == 'true'
         run: npm run build
       - name: Smoke tests
+        if: steps.vars.outputs.run == 'true'
         # playwright.config.ts starts `next start` on :3000 and waits for it.
         run: npm run test:e2e
       - name: Upload Playwright report
