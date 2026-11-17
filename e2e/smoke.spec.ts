@@ -54,11 +54,21 @@ test.describe("public pages render", () => {
   });
 
   test("/map mounts the map canvas", async ({ page }) => {
+    // Checks that the map mounts, not that tiles render. An empty stub style means no
+    // tile/font/sprite requests, so no late async Mapbox errors can race the error check.
+    // The one real call left is the session check, which validates the (URL-restricted)
+    // token. Its status is asserted directly, since the console error it causes can land
+    // after the check below.
+    await page.route(/^https:\/\/api\.mapbox\.com\/styles\/v1\//, (route) =>
+      route.fulfill({ json: { version: 8, sources: {}, layers: [] } }),
+    );
     const errors = trackErrors(page);
+    const sessionChecked = page.waitForResponse(/api\.mapbox\.com\/map-sessions\//);
     const response = await page.goto("/map");
     expect(response?.status()).toBe(200);
-    // Asserts the canvas mounts, not that tiles render: the Mapbox token is URL-restricted.
     await expect(page.locator("canvas.mapboxgl-canvas")).toBeVisible();
+    const session = await sessionChecked;
+    expect(session.status(), "Mapbox rejected the token for localhost:3000").toBe(200);
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
@@ -128,15 +138,20 @@ test.describe("security", () => {
   });
 });
 
-/** First post in content/blog whose frontmatter has a `draft` key that isn't literal `false`. */
+/**
+ * First post in content/blog whose frontmatter has a `draft` key that isn't YAML boolean
+ * `false` (lib/blog.ts publishes only on that). YAML 1.2 reads false/False/FALSE as false;
+ * a quoted "false" is a string, so still a draft.
+ */
 async function findDraftSlug(): Promise<string | null> {
   const dir = path.join(process.cwd(), "content", "blog");
   for (const file of await readdir(dir)) {
     if (!file.endsWith(".mdx")) continue;
     const source = await readFile(path.join(dir, file), "utf8");
     const frontmatter = source.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
-    const draft = frontmatter.match(/^draft:\s*(.*)$/m)?.[1]?.trim();
-    if (draft !== undefined && draft !== "false") return file.replace(/\.mdx$/, "");
+    const draft = frontmatter.match(/^draft:\s*(.*)$/m)?.[1]?.replace(/\s+#.*$/, "").trim();
+    const isFalse = draft !== undefined && ["false", "False", "FALSE"].includes(draft);
+    if (draft !== undefined && !isFalse) return file.replace(/\.mdx$/, "");
   }
   return null;
 }
