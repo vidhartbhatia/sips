@@ -19,13 +19,13 @@ Live at **[oursips.com](https://oursips.com)**.
 
 - **Cafe pages:** an overall rating, vibe tags, a "what we tried" list with a rating and note
   per drink or pastry, and dated visit notes.
-- **Map:** every reviewed cafe on a Mapbox map, with search and filters for neighborhood and
+- **Map:** every published cafe on a Mapbox map, with search and filters for neighborhood and
   minimum rating.
 - **Want to go:** a list of cafes we haven't reviewed yet.
 - **Blog:** MDX posts in `content/blog/`.
 - **Admin** (two authors only): add cafes (addresses geocoded server-side), write reviews as
-  drafts and publish them, upload photos (resized in the browser first), and bulk-import saved
-  places and lists from a Google Takeout export.
+  drafts and publish them, upload photos, and bulk-import saved places and lists from a Google
+  Takeout export.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ flowchart LR
   subgraph vercel["Vercel"]
     proxy["proxy.ts<br/>per-request nonce CSP<br/>session refresh, /admin gate"]
     rsc["Next.js App Router<br/>Server Components (public pages)"]
-    actions["Server Actions<br/>requireAuth() before every write"]
+    actions["Server Actions<br/>requireAuth() before content writes"]
   end
 
   subgraph supabase["Supabase"]
@@ -86,22 +86,26 @@ ever set by hand.
 - **Private photos with cache-friendly signed URLs.**
   [Migration 007](supabase/migrations/007_private_photos_public_blog_bucket.sql) made the photos
   bucket private, because a public bucket serves any object to anyone holding its URL, drafts
-  included. The database stores object paths, and [`lib/storage.ts`](lib/storage.ts) signs only
-  paths that an anon (RLS-filtered) read just returned. Signed URLs are cached per day, so
-  `next/image` sees a stable `src` and its optimizer cache keeps hitting, while every URL still
-  has at least a day left to live. Blog images live in a separate public bucket.
+  included. The database stores object paths. Public queries
+  ([`lib/supabase/queries.ts`](lib/supabase/queries.ts)) keep only photos of published reviews
+  and cafes, then pass those paths to the service-role signer in
+  [`lib/storage.ts`](lib/storage.ts). Public signed URLs are reused for a whole day, so
+  `next/image` sees a stable `src` and its optimizer cache keeps hitting, and each one still has
+  at least a day left when it's handed out. Admin URLs are signed fresh and expire in an hour.
+  Blog images live in a separate public bucket.
 - **Two-person write access, checked in several places.** The magic-link form never creates new
   users (`shouldCreateUser: false`), and an `ALLOWED_EMAILS` allowlist is checked in [`proxy.ts`](proxy.ts) for `/admin`, in
   the [auth callback](app/auth/callback/route.ts), and by `requireAuth()`
-  ([`lib/auth.ts`](lib/auth.ts)) at the top of every mutating Server Action, since a Server Action
-  is a public endpoint whatever the middleware says.
+  ([`lib/auth.ts`](lib/auth.ts)) before every content write in a Server Action, directly or
+  through a guarded helper, since a Server Action is a public endpoint whatever the middleware
+  says.
   [Migration 004](supabase/migrations/004_profiles_for_bylines.sql) closed a hole where any
   signed-in user could promote their own profile to `admin`.
 - **Layered guards for a public repo.** A [pre-commit hook](.githooks/pre-commit) blocks
   non-noreply author emails, env files, files over 1 MB, personal emails and local paths, and runs
   gitleaks when installed. [CI](.github/workflows/ci.yml) runs gitleaks over the full history and
-  rejects commits with personal emails, which catches anything pushed with `--no-verify`. GitHub
-  secret scanning with push protection is the last layer.
+  rejects new commits with non-noreply author emails, so those two checks still hold when the hook
+  is skipped. GitHub secret scanning with push protection is the last layer.
 
 ## Built with AI agents
 
@@ -109,7 +113,8 @@ Sips is developed with coding agents, so the process is set up for them.
 
 - [`AGENTS.md`](AGENTS.md) is the single spec that Claude Code, Codex and Copilot all read: the
   stack, hard conventions, and a "check with V." list of decisions an agent must not make alone,
-  such as schema, auth, infra and framework changes. `CLAUDE.md` only imports it.
+  such as schema, auth, infra and framework changes. `CLAUDE.md` imports it and adds only
+  Claude-specific setup.
 - Project skills live in [`.agents/skills/`](.agents/skills/), shared across agents, for
   repeatable work like publishing a post or iterating on a design with a live preview.
 - Non-trivial diffs get a cross-model review: Codex reviews what Claude wrote, and its findings
