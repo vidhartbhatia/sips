@@ -111,3 +111,56 @@ export async function deletePhotoAction(photoId: string) {
 
   return { error: error?.message ?? null };
 }
+
+/** Link a photo to one of its review's drinks (it "shows" that drink), or unlink it with null. */
+export async function setPhotoItem(photoId: string, itemId: string | null): Promise<{ error: string | null }> {
+  await requireAuth();
+  const supabase = createAdminClient();
+
+  const { data: photo, error: photoError } = await supabase
+    .from("photos")
+    .select("review_id")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (photoError) return { error: photoError.message };
+  if (!photo) return { error: "Photo not found." };
+
+  if (itemId !== null) {
+    const { data: item, error: itemError } = await supabase
+      .from("items")
+      .select("review_id")
+      .eq("id", itemId)
+      .maybeSingle();
+    if (itemError) return { error: itemError.message };
+    if (!item || !photo.review_id || item.review_id !== photo.review_id) {
+      return { error: "That drink isn't part of this review." };
+    }
+  }
+
+  const { error } = await supabase.from("photos").update({ item_id: itemId }).eq("id", photoId);
+  return { error: error?.message ?? null };
+}
+
+const MAX_CAPTION = 200;
+
+/** Set a photo's description, which is its alt text. Trimmed; empty is stored as null. */
+export async function updatePhotoCaption(photoId: string, caption: string | null): Promise<{ error: string | null }> {
+  await requireAuth();
+  if (caption !== null && typeof caption !== "string") return { error: "Invalid description." };
+  const text = caption?.trim() || null;
+  if (text && text.length > MAX_CAPTION) {
+    return { error: `Keep the description to ${MAX_CAPTION} characters or fewer.` };
+  }
+
+  const supabase = createAdminClient();
+  const { data: photo, error: photoError } = await supabase
+    .from("photos")
+    .select("id")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (photoError) return { error: photoError.message };
+  if (!photo) return { error: "Photo not found." };
+
+  const { error } = await supabase.from("photos").update({ caption: text }).eq("id", photoId);
+  return { error: error?.message ?? null };
+}

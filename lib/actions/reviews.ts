@@ -188,6 +188,7 @@ export async function updateReview(
   // an edit never changes or claims a review's author (unattributed reviews stay
   // unattributed, so one author can't be credited with the other's review).
   const { overall_rating, note, verdict, date_visited, status } = data;
+  if (date_visited !== undefined && !DATE_RE.test(date_visited)) return { error: "Pick the date of the visit." };
   if (overall_rating !== undefined) {
     const overall = scoreOrError(overall_rating, "The overall score");
     if (overall.error) return { error: overall.error };
@@ -230,6 +231,23 @@ export async function updateReview(
 /** Publish a draft: every score must be in (see `canPublish`). */
 export async function publishReview(reviewId: string) {
   return updateReview(reviewId, { status: "published" });
+}
+
+/** Take a published review back to a draft. It leaves the public site and the cafe score. */
+export async function unpublishReview(reviewId: string) {
+  return updateReview(reviewId, { status: "draft" });
+}
+
+/**
+ * Save the edit form's visit fields and publish in one call, so the publish rules see the
+ * values on screen rather than the last saved ones, and no unsaved edit is skipped.
+ */
+export async function saveAndPublishReview(
+  reviewId: string,
+  fields: { overall_rating: number | null; verdict: string | null; note: string | null; date_visited: string },
+) {
+  const { overall_rating, verdict, note, date_visited } = fields;
+  return updateReview(reviewId, { overall_rating, verdict, note, date_visited, status: "published" });
 }
 
 /** Choose this visit's hero photo. The photo must belong to this review. */
