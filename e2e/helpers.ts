@@ -98,17 +98,24 @@ const ENTITIES: Record<string, string> = {
   "&nbsp;": " ",
 };
 
-/** Text content of server HTML: comments and tags dropped, entities decoded, spaces collapsed. */
+/**
+ * Text content of server HTML: script and style bodies, comments and tags dropped, entities
+ * decoded, spaces collapsed.
+ */
 function textOf(markup: string): string {
   return markup
+    .replace(/<(script|style|template)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/&(?:amp|lt|gt|quot|nbsp|#x27|#39);/g, (e) => ENTITIES[e] ?? e)
     .replace(/\s+/g, " ");
 }
 
-/** Matches `opacity:0` (or `0.0`) in a style attribute, but not `opacity:0.5`. */
-const INLINE_HIDDEN = /style="[^"]*\bopacity:\s*0(?:\.0+)?(?![.\d])/;
+/**
+ * Matches an `opacity:0` (or `0.0`) declaration in a style attribute, but not `opacity:0.5`
+ * or `fill-opacity:0` / `stroke-opacity:0`.
+ */
+const INLINE_HIDDEN = /style="(?:[^"]*;)?\s*opacity:\s*0(?:\.0+)?(?![.\d])/;
 
 /**
  * The server HTML for `url` already shows `text` inside `<main>`, with nothing hidden by an
