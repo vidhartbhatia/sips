@@ -58,14 +58,8 @@ export default function HomeContent({ cafes }: { cafes: Cafe[] }) {
 
                 <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row md:items-start">
                   <Link
-                    href="/map"
-                    className="rounded-xl bg-terracotta px-8 py-3 text-base text-cream transition-all hover:bg-terracotta-dark hover:shadow-lg"
-                  >
-                    Explore the Map
-                  </Link>
-                  <Link
                     href="/cafes"
-                    className="rounded-xl border border-espresso/[0.15] px-8 py-3 text-base text-espresso transition-all hover:bg-espresso/5"
+                    className="rounded-xl bg-terracotta px-8 py-3 text-base text-cream transition-all hover:bg-terracotta-dark hover:shadow-lg"
                   >
                     Browse Cafes
                   </Link>
@@ -163,50 +157,11 @@ export default function HomeContent({ cafes }: { cafes: Cafe[] }) {
                   height={64}
                   className="mx-auto mb-4 opacity-30"
                 />
-                <p className="font-heading text-2xl text-espresso-muted">
-                  We&apos;re brewing up our reviews
-                </p>
-                <p className="mt-2 text-sm text-espresso-muted">
-                  Check back soon for our latest cafe discoveries
+                <p className="font-heading text-2xl text-espresso">
+                  First reviews soon.
                 </p>
               </div>
             )}
-          </div>
-        </section>
-
-        <InkDivider className="text-espresso" />
-
-        {/* Map Preview */}
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <motion.div {...fade}>
-              <span className="block text-center font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
-                Discover
-              </span>
-              <h2 className="mt-2 text-center font-heading text-3xl text-espresso">
-                Find Your Next Cup
-              </h2>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={safeTransition({ duration: 0.6 })}
-              className="mt-10 text-center"
-            >
-              <p className="mx-auto max-w-md text-base leading-relaxed text-espresso-muted">
-                We&apos;ve pinned every cafe we&apos;ve reviewed on an interactive
-                map &mdash; filter by neighborhood, rating, and vibe to find your
-                perfect spot.
-              </p>
-              <Link
-                href="/map"
-                className="mt-8 inline-block rounded-xl bg-sage px-8 py-3 text-base text-cream transition-all hover:bg-sage-dark hover:shadow-lg"
-              >
-                Explore the Map
-              </Link>
-            </motion.div>
           </div>
         </section>
 

@@ -47,6 +47,21 @@ export default function CafeGrid({ cafes }: { cafes: Cafe[] }) {
     ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
     : { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
+  if (cafes.length === 0) {
+    return (
+      <div className="mt-16 py-8 text-center">
+        <Image
+          src="/illustrations/coffee-cup.svg"
+          alt=""
+          width={56}
+          height={56}
+          className="mx-auto mb-4 opacity-25"
+        />
+        <p className="font-heading text-2xl text-espresso">First reviews soon.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Filters */}

@@ -4,7 +4,7 @@ import HomeContent from "@/components/home/HomeContent";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const cafes = await getCafes({ status: "published", limit: 6 });
+  const cafes = await getCafes({ limit: 6 });
 
   const mapped = cafes.map((c: Record<string, unknown>) => ({
     name: c.name as string,
