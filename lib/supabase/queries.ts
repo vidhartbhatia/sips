@@ -28,7 +28,9 @@ function createAnonClient() {
  * `cafes.cover_photo_url` is a public column with no RLS link to a photo, so a cover is
  * signed only if it is one of that cafe's photos that a logged-out visitor can read
  * (migration 005: its review and cafe are published). Anything else renders as no cover.
- * Values are matched as storage paths, so a pre-007 URL and its bare path are the same.
+ * Values are matched as storage paths, so a pre-007 URL cover matches a bare-path photo row.
+ * (The reverse, a pre-007 URL row with a bare-path cover, only arises from a hand-set cover
+ * on legacy data and fails closed: no cover.)
  *
  * Every page signs the same set, so a cover gets the same URL on every page for the whole
  * reuse window and `next/image` optimizes it once.
@@ -46,10 +48,19 @@ async function getPublicCoverUrls(): Promise<SignedUrls> {
   }
   if (cafes.length === 0) return {};
 
+  // Look up only the cover values themselves (as stored and as bare paths), so the result
+  // stays small and can't hit PostgREST's row limit.
+  const candidates = new Set<string>();
+  for (const c of cafes) {
+    if (c.cover_photo_url) candidates.add(c.cover_photo_url);
+    const path = toStoragePath(c.cover_photo_url);
+    if (path) candidates.add(path);
+  }
   const { data: photos, error: photosError } = await anon
     .from("photos")
     .select("cafe_id, photo_url")
-    .in("cafe_id", cafes.map((c) => c.id));
+    .in("cafe_id", cafes.map((c) => c.id))
+    .in("photo_url", [...candidates]);
   if (photosError) {
     console.error("getPublicCoverUrls: photos query failed", photosError);
     return {};
