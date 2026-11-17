@@ -84,9 +84,14 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
     date_visited: review.date_visited,
   };
   const [fields, setFields] = useState(initial);
+  // The latest fields, for Save and Publish to read after waiting on the drink rows.
+  const fieldsRef = useRef(initial);
   // What the server has for the visit fields, to tell whether there's anything to save.
   const [baseline, setBaseline] = useState(initial);
-  const set = (patch: Partial<VisitFields>) => setFields((f) => ({ ...f, ...patch }));
+  const set = (patch: Partial<VisitFields>) => {
+    fieldsRef.current = { ...fieldsRef.current, ...patch };
+    setFields(fieldsRef.current);
+  };
 
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -127,7 +132,7 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
   const save = () =>
     run("Saving…", async () => {
       const drinkAlert = await flushDrinks("save");
-      const sent = fields;
+      const sent = fieldsRef.current;
       const result = await updateReview(review.id, sent);
       if (result.error) return setAlert(result.error);
       setBaseline(sent);
@@ -139,7 +144,7 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
     run("Publishing…", async () => {
       const drinkAlert = await flushDrinks("publish");
       if (drinkAlert) return setAlert(drinkAlert);
-      const sent = fields;
+      const sent = fieldsRef.current;
       const result = await saveAndPublishReview(review.id, sent);
       if (result.error) return setAlert(result.error);
       setBaseline(sent);

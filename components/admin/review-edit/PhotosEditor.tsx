@@ -1,7 +1,7 @@
 // design-rules: enforced
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import PhotoPicker from "@/components/admin/capture/PhotoPicker";
 import { addReviewPhoto, deletePhotoAction, setPhotoItem, updatePhotoCaption } from "@/lib/actions/photos";
@@ -75,17 +75,19 @@ export default function PhotosEditor({
     }
   }
 
-  async function chooseCover(photoId: string) {
-    const previous = cover;
+  const saveCover = useLatestWins(coverPhotoId, async (photoId: string | null) => {
+    if (!photoId) return;
+    const result = await setReviewCover(reviewId, photoId);
+    if (result.error) throw new Error(result.error);
+  });
+
+  function chooseCover(photoId: string) {
     setCover(photoId);
     setCoverError(null);
-    try {
-      const result = await setReviewCover(reviewId, photoId);
-      if (result.error) throw new Error(result.error);
-    } catch (e) {
-      setCover(previous);
+    saveCover.run(photoId, (confirmed, e) => {
+      setCover(confirmed);
       setCoverError(messageOf(e));
-    }
+    });
   }
 
   return (
@@ -107,7 +109,7 @@ export default function PhotosEditor({
               photo={photo}
               index={i + 1}
               isCover={cover === photo.id}
-              onCover={() => void chooseCover(photo.id)}
+              onCover={() => chooseCover(photo.id)}
               drinks={drinks}
               inputClass={inputClass}
               onDelete={() =>
@@ -118,7 +120,10 @@ export default function PhotosEditor({
                   run: async () => {
                     const result = await deletePhotoAction(photo.id);
                     if (result.error) throw new Error(result.error);
-                    if (cover === photo.id) setCover(null);
+                    if (cover === photo.id) {
+                      setCover(null);
+                      saveCover.confirm(null);
+                    }
                     onChanged();
                   },
                 })
@@ -177,18 +182,19 @@ function PhotoCard({ photo, index, isCover, onCover, drinks, inputClass, onDelet
   // A drink deleted since this photo was linked no longer exists: show "nothing".
   const shown = itemId && drinks.some((d) => d.id === itemId) ? itemId : "";
 
-  async function link(next: string) {
-    const previous = itemId;
+  const saveLink = useLatestWins(photo.item_id, async (next: string | null) => {
+    const result = await setPhotoItem(photo.id, next);
+    if (result.error) throw new Error(result.error);
+    setStatus("Saved");
+  });
+
+  function link(next: string) {
     setItemId(next || null);
     setError(null);
-    try {
-      const result = await setPhotoItem(photo.id, next || null);
-      if (result.error) throw new Error(result.error);
-      setStatus("Saved");
-    } catch (e) {
-      setItemId(previous);
+    saveLink.run(next || null, (confirmed, e) => {
+      setItemId(confirmed);
       setError(messageOf(e));
-    }
+    });
   }
 
   async function saveCaption() {
@@ -247,7 +253,7 @@ function PhotoCard({ photo, index, isCover, onCover, drinks, inputClass, onDelet
         <select
           id={`${id}-item`}
           value={shown}
-          onChange={(e) => void link(e.target.value)}
+          onChange={(e) => link(e.target.value)}
           className={inputClass}
         >
           <option value="">No particular drink</option>
@@ -288,4 +294,30 @@ function PhotoCard({ photo, index, isCover, onCover, drinks, inputClass, onDelet
       )}
     </li>
   );
+}
+
+/**
+ * Save a choice (cover, linked drink) that can change again before the server answers.
+ * Requests go one at a time, in the order chosen, so the last choice is the one stored. A
+ * failure is reported only for the latest choice, and rolls back to the last value the
+ * server confirmed (not to whatever was on screen when that request started).
+ */
+function useLatestWins<T>(initial: T, save: (value: T) => Promise<void>) {
+  const confirmed = useRef(initial);
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  const latest = useRef(0);
+
+  function run(value: T, onFail: (confirmed: T, error: unknown) => void) {
+    const seq = ++latest.current;
+    chain.current = chain.current.then(async () => {
+      try {
+        await save(value);
+        confirmed.current = value;
+      } catch (e) {
+        if (seq === latest.current) onFail(confirmed.current, e);
+      }
+    });
+  }
+
+  return { run, confirm: (value: T) => void (confirmed.current = value) };
 }
