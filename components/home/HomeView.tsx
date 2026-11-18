@@ -72,7 +72,8 @@ export function HomeView({ cafes, summaries }: HomeViewProps) {
           </div>
         </section>
 
-        <div className="mx-auto max-w-6xl px-6">
+        {/* The page's one divider, capped so the sprig never repeats across the screen. */}
+        <div className="mx-auto max-w-sm px-6">
           <InkDivider className="text-espresso" />
         </div>
 

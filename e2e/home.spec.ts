@@ -164,6 +164,16 @@ test.describe("about", () => {
   });
 });
 
+for (const url of ["/fixtures/home/six", "/fixtures/home/empty", "/about"]) {
+  test(`${url}: one divider, not full-bleed`, async ({ page }) => {
+    await page.goto(url);
+    const dividers = page.locator('main img[src*="/illustrations/dividers/"]');
+    await expect(dividers).toHaveCount(1);
+    const box = await dividers.first().boundingBox();
+    expect(box?.width ?? Infinity).toBeLessThanOrEqual(384);
+  });
+}
+
 test.describe("404s", () => {
   test("an unknown page 404s with a way home", async ({ page, request }, testInfo) => {
     expect((await request.get("/no-such-page")).status()).toBe(404);

@@ -40,7 +40,10 @@ export default function AboutPage() {
           />
         </div>
 
-        <InkDivider className="my-12 text-espresso" />
+        {/* The page's one divider, capped so the sprig never repeats across the screen. */}
+        <div className="mx-auto my-12 max-w-sm">
+          <InkDivider className="text-espresso" />
+        </div>
 
         <section aria-labelledby="how-we-score">
           <h2 id="how-we-score" className="font-heading text-4xl text-espresso">
