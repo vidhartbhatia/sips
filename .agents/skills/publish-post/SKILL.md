@@ -55,6 +55,8 @@ date: "2026-11-16"
 author: "Lea"           # or "Vids" (the public names)
 excerpt: "One sentence for the Stories page."
 cover: "<url printed by the upload script>"   # optional
+cafes:                  # optional: slugs of the cafes the story mentions
+  - elm-coffee-roasters
 draft: false
 ---
 
@@ -63,6 +65,11 @@ Body in Markdown. Use ## headings, short paragraphs, and images like
 ```
 
 The slug is lowercase-kebab and matches the filename. Write alt text for every image.
+
+`cafes:` lists the cafe slugs from `oursips.com/cafes/<slug>` (lowercase-kebab). Each listed
+cafe's review page then links back to the story under "Featured in", once the story is
+published. Entries that aren't valid slugs are ignored. Leave it out if the story names no
+reviewed cafe.
 
 ## 4. Preview, then publish
 

@@ -5,6 +5,7 @@ import { cache } from "react";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import { ReviewArticle } from "@/components/review/ReviewArticle";
+import { getStoriesForCafe } from "@/lib/blog";
 import { buildReviewPage } from "@/lib/review-view";
 import { getCafeBySlug } from "@/lib/supabase/queries";
 
@@ -39,7 +40,7 @@ export default async function CafePage({ params }: CafePageProps) {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <ReviewArticle view={view} />
+        <ReviewArticle view={view} featuredIn={await getStoriesForCafe(slug)} />
       </main>
       <Footer />
     </div>

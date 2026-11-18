@@ -24,6 +24,10 @@ beforeAll(async () => {
     "quoted-false.mdx": post('title: "Quoted"\ndate: "2026-11-04"\ndraft: "false"'),
     "bad-yaml.mdx": post('title: "Bad\ndate: [2026'),
     "no-date.mdx": post('title: "No date"'),
+    // "Featured in": stories that list a cafe in `cafes:`. Drafts never count.
+    "elm-crawl.mdx": post('title: "Elm crawl"\ndate: "2026-08-01"\ncafes:\n  - elm-coffee\n  - larkspur'),
+    "elm-again.mdx": post('title: "Elm again"\ndate: "2026-08-15"\ncafes: [elm-coffee]'),
+    "elm-draft.mdx": post('title: "Elm draft"\ndate: "2026-08-20"\ndraft: true\ncafes: [elm-coffee]'),
   };
   for (const [name, source] of Object.entries(files)) await writeFile(path.join(dir, name), source);
 
@@ -39,12 +43,26 @@ afterAll(async () => {
 describe("getAllPosts", () => {
   it("lists published posts newest first and survives broken drafts and bad YAML", async () => {
     const posts = await blog.getAllPosts();
-    expect(posts.map((p) => p.slug)).toEqual(["newer", "older", "broken-body"]);
+    expect(posts.map((p) => p.slug)).toEqual(["newer", "older", "broken-body", "elm-again", "elm-crawl"]);
     expect(posts[1]).toMatchObject({ title: "Older", date: "2026-10-01", author: "Lea" });
   });
 
   it("listPublishedStories returns the same posts", async () => {
-    expect((await blog.listPublishedStories()).map((p) => p.slug)).toEqual(["newer", "older", "broken-body"]);
+    expect((await blog.listPublishedStories()).map((p) => p.slug)).toEqual(["newer", "older", "broken-body", "elm-again", "elm-crawl"]);
+  });
+});
+
+describe("getStoriesForCafe", () => {
+  it("returns published stories that list the cafe, newest first, as slug and title", async () => {
+    expect(await blog.getStoriesForCafe("elm-coffee")).toEqual([
+      { slug: "elm-again", title: "Elm again" },
+      { slug: "elm-crawl", title: "Elm crawl" },
+    ]);
+    expect(await blog.getStoriesForCafe("larkspur")).toEqual([{ slug: "elm-crawl", title: "Elm crawl" }]);
+  });
+
+  it("returns [] for a cafe no story mentions", async () => {
+    expect(await blog.getStoriesForCafe("nowhere")).toEqual([]);
   });
 });
 
