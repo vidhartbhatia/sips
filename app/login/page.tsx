@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Illustration } from "@/components/ui/Illustration";
 
 export default function LoginPage() {
   return (
@@ -88,13 +88,7 @@ function LoginContent() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-10 text-center">
-          <Image
-            src="/illustrations/coffee-cup.svg"
-            alt=""
-            width={48}
-            height={48}
-            className="mx-auto mb-3 opacity-50"
-          />
+          <Illustration slot="logo" className="mx-auto mb-3 h-12 w-auto" />
           <h1 className="font-heading text-4xl text-espresso">Sips</h1>
           <p className="mt-1 font-display text-lg italic text-espresso-muted">
             welcome back to your cafe journal

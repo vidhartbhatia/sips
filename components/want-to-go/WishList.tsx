@@ -1,7 +1,5 @@
-"use client";
-
-import Image from "next/image";
-import { motion } from "framer-motion";
+// design-rules: enforced
+import { Illustration } from "@/components/ui/Illustration";
 
 interface WishListItem {
   id: string;
@@ -12,27 +10,15 @@ interface WishListItem {
   notes: string | null;
 }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
+interface WishListProps {
+  items: WishListItem[];
+}
 
-const item = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0 },
-};
-
-export default function WishList({ items }: { items: WishListItem[] }) {
+export default function WishList({ items }: WishListProps) {
   if (items.length === 0) {
     return (
       <div className="mt-16 text-center">
-        <Image
-          src="/illustrations/stacked-cups.svg"
-          alt=""
-          width={120}
-          height={120}
-          className="mx-auto mb-6 opacity-40"
-        />
+        <Illustration slot="empty" className="mx-auto mb-6 h-auto w-28" />
         <p className="font-heading text-2xl text-espresso-muted">
           No spots on the list yet
         </p>
@@ -44,27 +30,15 @@ export default function WishList({ items }: { items: WishListItem[] }) {
   }
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="mt-10 space-y-4"
-    >
+    <ul className="mt-10 space-y-4">
       {items.map((place) => (
-        <motion.div
+        <li
           key={place.id}
-          variants={item}
           className="rounded-xl border border-espresso/[0.12] bg-stone p-5"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <Image
-                src="/illustrations/coffee-cup.svg"
-                alt=""
-                width={24}
-                height={24}
-                className="mt-0.5 shrink-0 opacity-30"
-              />
+              <Illustration slot="coffee" className="mt-0.5 h-6 w-6 shrink-0 object-contain" />
               <div>
                 <h3 className="font-heading text-xl text-espresso">
                   {place.name}
@@ -79,14 +53,14 @@ export default function WishList({ items }: { items: WishListItem[] }) {
                 )}
               </div>
             </div>
-            <span className="shrink-0 rounded-full border border-espresso/[0.1] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-espresso-muted">
+            <span className="shrink-0 rounded-full border border-espresso/[0.1] px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-espresso-muted">
               {place.source === "google_maps"
                 ? "Google Maps"
                 : "added by us"}
             </span>
           </div>
-        </motion.div>
+        </li>
       ))}
-    </motion.div>
+    </ul>
   );
 }

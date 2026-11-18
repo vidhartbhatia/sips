@@ -56,17 +56,11 @@ Clean, confident ink illustrations generated via Recraft AI:
 - NOT used for: every heading, every card, every element (restraint)
 
 ### Available Assets (`public/illustrations/`)
-- **cafe-scene.png** — cafe table with chair, cup, croissant, plant (hero)
-- **coffee-cup.svg** — single coffee cup (logo/icon use)
-- **matcha-bowl.svg** — matcha bowl
-- **cocktail-glass.svg** — cocktail glass
-- **takeaway-cup.svg** — takeaway cup
-- **croissant.svg** — croissant
-- **cat-with-cup.svg/png** — cat mascot with coffee cup
-- **stacked-cups.svg/png** — stack of cups (empty states)
-- **potted-plant.svg** — potted plant
-- **notebook.png** — notebook/journal
-- **icon-set.svg** — small icon collection
+Pages never name a file. They render a named slot from `lib/illustrations.ts` through
+`<Illustration slot="…" />`, and a unit test fails on any raw `/illustrations/` path elsewhere.
+- **Page art:** `hero` (watercolour WebP, plus `HERO_MOBILE`), `logo` (also the favicon), `empty`, `404`, `about`
+- **Doodles:** `coffee`, `matcha`, `tea`, `pastry` (`doodleFor()` picks one from an item's name)
+- **Ornaments and divider:** `ornament-1`, `ornament-2`, and the sprig `DIVIDER` used by `InkDivider`
 
 ## Layout Principles
 

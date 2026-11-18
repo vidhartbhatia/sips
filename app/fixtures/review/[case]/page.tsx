@@ -7,7 +7,7 @@ import { PreviewBanner } from "@/components/review/PreviewBanner";
 import { ReviewArticle } from "@/components/review/ReviewArticle";
 import { fixturesEnabled } from "@/lib/fixtures";
 import { buildReviewPage, publishBlocker } from "@/lib/review-view";
-import { cases, previewLeads } from "../cases";
+import { cases, featuredIn, previewLeads } from "../cases";
 
 // Per request, so `fixturesEnabled()` is never baked in at build time.
 export const dynamic = "force-dynamic";
@@ -36,7 +36,11 @@ export default async function ReviewFixturePage({ params }: { params: Promise<{ 
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <ReviewArticle view={view} banner={banner} />
+        <ReviewArticle
+          view={view}
+          banner={banner}
+          featuredIn={Object.hasOwn(featuredIn, name) ? featuredIn[name] : []}
+        />
       </main>
       <Footer />
     </div>
