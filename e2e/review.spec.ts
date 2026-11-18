@@ -157,3 +157,78 @@ test("admin preview: logged out, it redirects to /login", async ({ request }) =>
   expect([302, 303, 307, 308]).toContain(response.status());
   expect(new URL(response.headers()["location"] ?? "", "http://localhost").pathname).toBe("/login");
 });
+
+/**
+ * A layout-A page as the public sees it: the site shell, no console errors, every image
+ * loaded (earlier visits opened first, since closed `<details>` never load theirs), and no
+ * section that renders its frame but nothing in it.
+ */
+async function expectLayoutAPage(page: Page, href: string): Promise<void> {
+  const errors = trackErrors(page);
+  const response = await page.goto(href);
+  expect(response?.status(), `${href} status`).toBe(200);
+
+  await expect(page.getByTestId("review-meta")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toBeVisible();
+
+  await page.locator("main details").evaluateAll((all) => {
+    for (const d of all) (d as HTMLDetailsElement).open = true;
+  });
+  const images = page.locator("main img");
+  const count = await images.count();
+  for (let i = 0; i < count; i++) {
+    const img = images.nth(i);
+    // next/image lazy-loads everything below the hero: bring each into view, then wait.
+    await img.scrollIntoViewIfNeeded();
+    await expect
+      .poll(
+        () => img.evaluate((el) => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0),
+        { message: `${href}: image ${i} (${await img.getAttribute("src")}) did not load` },
+      )
+      .toBe(true);
+  }
+
+  // Sections are left out when empty, so any that render must hold something.
+  for (const [id, child] of [
+    ["review-hero", "img"],
+    ["photo-strip", "img"],
+    ["what-we-tried", "li"],
+  ] as const) {
+    const section = page.getByTestId(id);
+    if ((await section.count()) === 0) continue;
+    expect(await section.locator(child).count(), `${href}: empty ${id}`).toBeGreaterThan(0);
+  }
+
+  expect(errors, `errors on ${href}:\n${errors.join("\n")}`).toEqual([]);
+}
+
+// The live check below skips until a review is published, so run the same checks on the
+// fixtures now: the first real run must not be the day L. publishes.
+for (const name of ["single", "multi"] as const) {
+  test(`${name}: passes the live-page checks (shell, images, no empty sections)`, async ({ page }) => {
+    await expectLayoutAPage(page, url(name));
+  });
+}
+
+test("single: every drink name lines up, with or without a picture", async ({ page }) => {
+  await page.goto(url("single"));
+  const names = page.getByTestId("what-we-tried").locator("li p.font-semibold");
+  await expect(names).toHaveCount(3);
+  const xs = await names.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().x)));
+  expect(new Set(xs).size, `drink names start at x = ${xs.join(", ")}`).toBe(1);
+});
+
+test("live: every listed cafe opens a layout-A page", async ({ page }) => {
+  // Live data, read-only. CI's service key is a placeholder, so no photo signs there and
+  // every photo must be dropped cleanly (no broken <img>, no empty strip).
+  await page.goto("/cafes");
+  const hrefs = await page
+    .getByRole("main")
+    .locator('a[href^="/cafes/"]')
+    .evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
+  const listed = [...new Set(hrefs.filter((h) => /^\/cafes\/[a-z0-9-]+$/.test(h)))];
+  test.skip(listed.length === 0, "no published reviews yet");
+  for (const href of listed) await expectLayoutAPage(page, href);
+});

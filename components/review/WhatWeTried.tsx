@@ -63,8 +63,8 @@ function DrinkPicture({ drink, unoptimizedImages }: { drink: VisitDrink; unoptim
 export function WhatWeTried({ drinks, unoptimizedImages, headingLevel = 2, testId }: WhatWeTriedProps) {
   if (drinks.length === 0) return null;
   const Heading = headingLevel === 2 ? "h2" : "h3";
-  // From sm up, when any drink has a picture, the others keep its column empty so every
-  // name lines up like a menu. On a phone the space is worth more than the alignment.
+  // When any drink has a picture, the others keep its column empty so every name lines up
+  // like a menu, at every width. The spacer matches DrinkPicture's width (w-24, sm:w-28).
   const alignNames = drinks.some(hasPicture);
 
   return (
@@ -80,7 +80,7 @@ export function WhatWeTried({ drinks, unoptimizedImages, headingLevel = 2, testI
             {hasPicture(drink) ? (
               <DrinkPicture drink={drink} unoptimizedImages={unoptimizedImages} />
             ) : (
-              alignNames && <div aria-hidden="true" className="hidden w-28 shrink-0 sm:block" />
+              alignNames && <div aria-hidden="true" className="w-24 shrink-0 sm:w-28" />
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
