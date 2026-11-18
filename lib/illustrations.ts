@@ -7,22 +7,35 @@ export type OrnamentSlot = "ornament-1" | "ornament-2";
 
 export type Asset = { src: string; width: number; height: number };
 
-// Until K1 these point at today's files (all 1024×1024 SVGs).
-const coffeeCup: Asset = { src: "/illustrations/coffee-cup.svg", width: 1024, height: 1024 };
-
+// The owner's picks (2026-11-17), style B. Sizes are each file's own viewBox or WebP canvas,
+// so next/image reserves the right aspect ratio. Line art is SVG; the watercolour hero is WebP.
 export const ILLUSTRATIONS: Record<IllustrationSlot, Asset> = {
-  hero: { src: "/illustrations/cafe-scene.svg", width: 1024, height: 1024 },
-  logo: coffeeCup,
-  empty: coffeeCup,
-  "404": coffeeCup,
-  about: { src: "/illustrations/cat-with-cup.svg", width: 1024, height: 1024 },
+  hero: { src: "/illustrations/hero.webp", width: 1536, height: 1024 },
+  logo: { src: "/illustrations/logo.svg", width: 1000, height: 929 },
+  empty: { src: "/illustrations/empty.svg", width: 777, height: 1000 },
+  "404": { src: "/illustrations/404.svg", width: 1000, height: 420 },
+  about: { src: "/illustrations/about.svg", width: 1108, height: 879 },
 };
 
-export const DOODLES: Partial<Record<DoodleSlot, Asset>> = {};
+/**
+ * The hero's art without the empty headline room on its left, for narrow screens where the
+ * headline sits above the art. Use it with `getImageProps` in a `<picture>` (art direction).
+ */
+export const HERO_MOBILE: Asset = { src: "/illustrations/hero-mobile.webp", width: 698, height: 750 };
 
-export const ORNAMENTS: Partial<Record<OrnamentSlot, Asset>> = {};
+export const DOODLES: Partial<Record<DoodleSlot, Asset>> = {
+  coffee: { src: "/illustrations/doodles/coffee.svg", width: 800, height: 693 },
+  matcha: { src: "/illustrations/doodles/matcha.svg", width: 800, height: 711 },
+  tea: { src: "/illustrations/doodles/tea.svg", width: 681, height: 800 },
+  pastry: { src: "/illustrations/doodles/pastry.svg", width: 800, height: 647 },
+};
 
-export const DIVIDER: Asset | null = null;
+export const ORNAMENTS: Partial<Record<OrnamentSlot, Asset>> = {
+  "ornament-1": { src: "/illustrations/ornaments/ornament-1.svg", width: 800, height: 165 },
+  "ornament-2": { src: "/illustrations/ornaments/ornament-2.svg", width: 800, height: 100 },
+};
+
+export const DIVIDER: Asset | null = { src: "/illustrations/dividers/sprig.svg", width: 1600, height: 59 };
 
 // First match wins. Whole words only, so "steamed" never reads as "tea".
 const DOODLE_RULES: ReadonlyArray<[DoodleSlot, RegExp]> = [
