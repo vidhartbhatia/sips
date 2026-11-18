@@ -137,3 +137,59 @@ jobs:
           range=${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
           bad=$(git log --format='%ae' "$range" | sort -u | grep -vE '@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$' || true)
           if [ -n "$bad" ]; then echo "::error::New commits use a personal email"; echo "$bad" | sed -E 's/^(.).*@/\1***@/'; exit 1; fi
+
+  signed-in:
+    # The signed-in golden path (login with the emailed code, capture with a photo, publish,
+    # public page) against a throwaway LOCAL Supabase stack with the real migrations.
+    # Never touches production. See e2e/signed-in/.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Start local Supabase (real migrations)
+        run: supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - name: Point the app at the local stack
+        run: |
+          supabase status -o env | node -e '
+            const v = {};
+            for (const l of require("fs").readFileSync(0, "utf8").split("\n")) {
+              const m = l.match(/^(\w+)="?(.*?)"?$/); if (m) v[m[1]] = m[2];
+            }
+            const out = {
+              NEXT_PUBLIC_SUPABASE_URL: v.API_URL,
+              NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: v.PUBLISHABLE_KEY,
+              SUPABASE_SECRET_KEY: v.SECRET_KEY,
+              MAILPIT_URL: v.MAILPIT_URL,
+              NEXT_PUBLIC_MAPBOX_TOKEN: "placeholder",
+              ALLOWED_EMAILS: "e2e-admin@example.com",
+              E2E_LOCAL_SUPABASE: "1",
+              NEXT_TELEMETRY_DISABLED: "1",
+            };
+            console.log(Object.entries(out).map(([k, x]) => `${k}=${x}`).join("\n"));
+          ' >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build against the local stack
+        run: npm run build
+      - name: Seed and run the golden path
+        run: |
+          node e2e/signed-in/seed.mjs
+          (npx next start -p 3100 > server.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3100/ && break; sleep 1; done
+          curl -sf -o /dev/null http://localhost:3100/ || (cat server.log; exit 1)
+          npx playwright test -c playwright.signed-in.config.ts
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-in-trace
+          path: test-results/
+          retention-days: 7

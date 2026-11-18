@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
 
+// Only the signed-in e2e build (local Supabase stack on 127.0.0.1) sets this. Production builds
+// never do, so they never allow images from a local or private address.
+const e2eLocalSupabase = process.env.E2E_LOCAL_SUPABASE === "1";
+
 const nextConfig: NextConfig = {
   images: {
+    ...(e2eLocalSupabase && { dangerouslyAllowLocalIP: true }),
     remotePatterns: [
+      ...(e2eLocalSupabase
+        ? [{ protocol: "http" as const, hostname: "127.0.0.1", port: "54321", pathname: "/storage/v1/object/**" }]
+        : []),
       // Review photos: private bucket, served through signed URLs (lib/storage.ts).
       // `search` is left unset because the token is in the query string.
       {
