@@ -65,11 +65,14 @@ on timeout), pin the head SHA, and wait on the background task, never on `pgrep`
 
 - **PGlite DB tests run the SQL but not PostgREST.** An ambiguous embed (two foreign keys between
   `reviews` and `photos` after migration 008) or a missing grant on a view only shows up through
-  the real API. After a migration, check the affected queries against the API on the preview or
-  production, not just in PGlite.
-- **Signed-in flows have no automated browser test.** Capture, edit, draft preview and publish
-  are covered by unit tests only. Until that changes, a human tries them on a real draft after
-  each change to those pages.
+  the real API. The `signed-in` CI job now runs the real API on a local Supabase stack for the
+  golden path (login, capture with a photo, publish, public page). For queries outside that
+  path, check them against the API too, not just in PGlite.
+- **Signed-in flows beyond the golden path** (editing drinks, photo removal, draft preview,
+  unpublish) have unit tests only. Extend `e2e/signed-in/` when one of them breaks or changes
+  shape, rather than all at once.
+- **Real phones are still a human check.** CI uses a canvas-made JPEG, not a camera file, so the
+  first iPhone HEIC upload still gets a look.
 - **Some smoke tests skip until a cafe is published.** They first run for real on L.'s first
   publish, so watch CI on that day.
 - **If production breaks after a merge,** roll back first (`vercel rollback`, or promote the
