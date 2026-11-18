@@ -12,7 +12,7 @@ import type { Cafe, Item, Photo, Review, ReviewAuthor } from "@/lib/supabase/typ
 type Visit = Review & { author: ReviewAuthor | null };
 
 export type ReviewPageInput = {
-  cafe: Pick<Cafe, "name" | "slug" | "neighborhood" | "address" | "vibe_tags" | "google_place_id">;
+  cafe: Pick<Cafe, "name" | "slug" | "neighborhood" | "address" | "lat" | "lng" | "vibe_tags" | "google_place_id">;
   reviews: Visit[];
   items: Item[];
   /** `photo_url` is already a signed URL; unsignable photos were already dropped by the query. */
@@ -184,6 +184,6 @@ export function toPreviewInput(rows: {
 export function publishBlocker(input: ReviewPageInput, visitId: string): string | null {
   const visit = input.reviews.find((r) => r.id === visitId);
   if (!visit || visit.status !== "draft") return null;
-  const check = canPublish(visit, input.items.filter((i) => i.review_id === visitId));
+  const check = canPublish(visit, input.items.filter((i) => i.review_id === visitId), input.cafe);
   return check.ok ? null : check.reason;
 }

@@ -1,5 +1,6 @@
 // design-rules: enforced
 import { notFound } from "next/navigation";
+import { hasLocation } from "@/lib/review-rules";
 import { getReviewById } from "@/lib/supabase/queries";
 import ReviewEditForm from "./ReviewEditForm";
 
@@ -26,7 +27,14 @@ export default async function ReviewEditPage({
           note: review.note,
           date_visited: review.date_visited,
           cover_photo_id: review.cover_photo_id,
-          cafe: review.cafes ? { name: review.cafes.name, neighborhood: review.cafes.neighborhood } : null,
+          cafe: review.cafes
+            ? {
+                name: review.cafes.name,
+                slug: review.cafes.slug,
+                neighborhood: review.cafes.neighborhood,
+                hasLocation: hasLocation(review.cafes),
+              }
+            : null,
           items: [...(review.items ?? [])].sort(oldestFirst).map((item) => ({
             id: item.id,
             name: item.name,

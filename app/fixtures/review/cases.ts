@@ -25,6 +25,8 @@ const cafe = (name: string, tags: string[]): ReviewPageInput["cafe"] => ({
   slug: "fixture-cafe",
   neighborhood: "Capitol Hill",
   address: "1200 E Pike St, Seattle, WA 98122",
+  lat: 47.614,
+  lng: -122.317,
   vibe_tags: tags,
   google_place_id: null,
 });

@@ -11,6 +11,8 @@ const CAFE: ReviewPageInput["cafe"] = {
   slug: "larkspur-coffee",
   neighborhood: "Capitol Hill",
   address: "100 Pine St, Seattle, WA",
+  lat: 47.61,
+  lng: -122.34,
   vibe_tags: ["cozy"],
   google_place_id: null,
 };
