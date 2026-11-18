@@ -86,3 +86,31 @@ export async function getAllPosts(): Promise<PostMeta[]> {
     .filter((p): p is PostMeta => p !== null)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
+
+/** "2026-11-16" → "November 16, 2026", the same in every timezone. */
+export function formatStoryDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return isoDate;
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+let publishedStories: Promise<PostMeta[]> | null = null;
+
+/**
+ * Published stories, newest first. The root layout calls this on every request (the nav shows
+ * Stories only once one exists), so production memoizes it per server process: deployed files
+ * never change. Dev reads the folder each time, so a new post shows up without a restart.
+ */
+export function listPublishedStories(): Promise<PostMeta[]> {
+  if (process.env.NODE_ENV !== "production") return getAllPosts();
+  publishedStories ??= getAllPosts().catch((error: unknown) => {
+    publishedStories = null;
+    throw error;
+  });
+  return publishedStories;
+}

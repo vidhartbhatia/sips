@@ -88,7 +88,7 @@ Tell her the plugins load in her next Claude session.
 ## 6. See it run
 
 - `npm run dev`. Open http://localhost:3000 in the app's browser pane (or tell her to open it),
-  then show her `/`, `/cafes` and `/blog`.
+  then show her `/`, `/cafes` and `/stories`.
 - Run `npm run build` once to confirm everything compiles.
 
 ## 7. Site login (for writing reviews on the live site)

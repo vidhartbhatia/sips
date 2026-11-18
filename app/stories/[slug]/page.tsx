@@ -1,11 +1,12 @@
+// design-rules: enforced
 import type { Metadata } from "next";
 import type { ComponentPropsWithoutRef } from "react";
 import { notFound } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { getPost } from "@/lib/blog";
+import { formatStoryDate, getPost } from "@/lib/blog";
 
-interface BlogPostPageProps {
+interface StoryPageProps {
   params: Promise<{ slug: string }>;
 }
 
@@ -20,7 +21,7 @@ const mdxComponents = {
     <p className="mt-5 text-lg leading-relaxed text-espresso" {...props} />
   ),
   a: (props: ComponentPropsWithoutRef<"a">) => (
-    <a className="text-terracotta underline underline-offset-4" {...props} />
+    <a className="text-terracotta-dark underline underline-offset-4" {...props} />
   ),
   ul: (props: ComponentPropsWithoutRef<"ul">) => (
     <ul className="mt-5 list-disc space-y-2 pl-6 text-lg text-espresso" {...props} />
@@ -35,20 +36,20 @@ const mdxComponents = {
     />
   ),
   img: ({ alt, ...props }: ComponentPropsWithoutRef<"img">) => (
-    // Post images are static files in public/blog/<slug>/; plain img keeps authoring simple.
+    // Story images are public URLs in the `blog` bucket; a plain img keeps authoring simple.
     // eslint-disable-next-line @next/next/no-img-element
     <img alt={alt ?? ""} className="mt-8 w-full rounded-xl border border-espresso/[0.08]" {...props} />
   ),
 };
 
-export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: StoryPageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Post not found" };
+  if (!post) return { title: "Story not found" };
   return { title: post.meta.title, description: post.meta.excerpt };
 }
 
-export default async function BlogPostPage({ params }: BlogPostPageProps) {
+export default async function StoryPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const post = await getPost(slug, mdxComponents);
   if (!post) notFound();
@@ -59,11 +60,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <Header />
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
-          {new Date(`${frontmatter.date}T12:00:00`).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
+          <time dateTime={frontmatter.date}>{formatStoryDate(frontmatter.date)}</time>
         </span>
         <h1 className="mt-2 font-heading text-5xl text-espresso">{frontmatter.title}</h1>
         {frontmatter.author && (
