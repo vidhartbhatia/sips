@@ -56,7 +56,9 @@ describe("cafeMetadata", () => {
     expect(meta.title).toBe("Larkspur Coffee");
     expect(meta.description).toBe("A bright little room with a cortado worth crossing town for.");
     expect(meta.alternates?.canonical).toBe("/cafes/fixture-cafe");
-    expect(meta.openGraph).toMatchObject({ type: "article", authors: ["Lea"], publishedTime: "2026-11-01" });
+    expect(meta.openGraph).toMatchObject({ type: "article", authors: ["Lea"] });
+    // The visit date isn't the publication date, so none is claimed.
+    expect(meta.openGraph).not.toHaveProperty("publishedTime");
   });
 
   it("falls back to a plain description when the lead visit has no verdict", () => {
@@ -113,7 +115,7 @@ describe("cafeJsonLd", () => {
         geo: { "@type": "GeoCoordinates", latitude: 47.6145, longitude: -122.3205 },
       });
       expect(review.author).toMatchObject({ "@type": "Person" });
-      expect(review.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(review).not.toHaveProperty("datePublished");
       const rating = review.reviewRating as Node;
       expect(rating).toMatchObject({ "@type": "Rating", bestRating: 5, worstRating: 1 });
       expect(rating.ratingValue).toBeGreaterThanOrEqual(1);

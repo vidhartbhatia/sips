@@ -3,6 +3,7 @@
 // and the env-gated fixtures.
 
 import type { Metadata, MetadataRoute } from "next";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import type { ReviewPageView, VisitView } from "@/lib/review-view";
 
 export const SITE_URL = "https://oursips.com";
@@ -89,7 +90,8 @@ export function cafeMetadata(view: ReviewPageView): Metadata {
     title: cafe.name,
     description: lead.verdict ?? `Our review of ${cafe.name} in ${cafe.neighborhood}, Seattle.`,
     path: `/cafes/${cafe.slug}`,
-    article: { publishedTime: lead.dateVisited, ...(lead.author && { authors: [lead.author] }) },
+    // No publishedTime: reviews store the visit date, not when the review went live.
+    article: lead.author ? { authors: [lead.author] } : {},
     ownImage: true,
   });
 }
@@ -157,7 +159,7 @@ const organization: JsonLdNode = {
   "@id": ORG_ID,
   name: SITE_NAME,
   url: SITE_URL,
-  logo: absoluteUrl("/illustrations/logo.svg"),
+  logo: absoluteUrl(ILLUSTRATIONS.logo.src),
 };
 
 const website: JsonLdNode = {
@@ -206,7 +208,7 @@ function reviewNode(visit: VisitView, cafe: JsonLdNode, url: string): JsonLdNode
       ? { "@type": "Person", name: visit.author }
       : { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
     publisher: { "@id": ORG_ID },
-    datePublished: visit.dateVisited,
+    // No datePublished: reviews store the visit date, not when the review went live.
     ...(visit.verdict && { name: visit.verdict }),
     ...(body && { reviewBody: body }),
     ...(visit.score !== null && {
