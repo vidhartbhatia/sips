@@ -294,7 +294,15 @@ export default function CapturePage() {
               {saving ? progress ?? "Saving…" : "Save draft"}
             </button>
             {!saving && !cafeReady && (
-              <p className="mt-2 text-center text-xs text-espresso-muted">Pick a cafe to save.</p>
+              <p className="mt-2 text-center text-xs text-espresso-muted">
+                {cafe?.kind !== "new"
+                  ? "Pick a cafe to save."
+                  : !cafe.place && !cafe.byName
+                    ? "Pick it from Google Maps, or add it by name, to save."
+                    : cafe.name.trim() === ""
+                      ? "Name the cafe to save."
+                      : "Pick the cafe’s neighbourhood to save."}
+              </p>
             )}
           </div>
         </div>

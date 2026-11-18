@@ -15,7 +15,14 @@ export interface PickedPlace {
 
 export type CafeChoice =
   | { kind: "existing"; id: string; name: string; neighborhood: string }
-  | { kind: "new"; name: string; neighborhood: string; place: PickedPlace | null };
+  | {
+      kind: "new";
+      name: string;
+      neighborhood: string;
+      place: PickedPlace | null;
+      /** Added by name only (no Google place); still searching Google when false with no place. */
+      byName: boolean;
+    };
 
 type CafeResult = { id: string; name: string; slug: string; neighborhood: string };
 
@@ -109,7 +116,7 @@ export default function CafePicker({ value, onChange, inputClass }: CafePickerPr
           <li>
             <button
               type="button"
-              onClick={() => onChange({ kind: "new", name: query.trim(), neighborhood: "", place: null })}
+              onClick={() => onChange({ kind: "new", name: query.trim(), neighborhood: "", place: null, byName: false })}
               className="flex min-h-12 w-full items-center px-4 py-3 text-left text-terracotta-dark hover:bg-stone/60"
             >
               + Add &ldquo;{query.trim()}&rdquo; as a new cafe
@@ -135,7 +142,7 @@ const linkButton = "min-h-12 px-2 text-sm text-terracotta-dark underline-offset-
  * name only. Its own component so its search state resets each time "new cafe" opens.
  */
 function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
-  const [manual, setManual] = useState(false);
+  const manual = value.byName;
   const [query, setQuery] = useState(value.name);
   const [found, setFound] = useState<{ query: string; result: PlacesResult<PlaceSuggestion[]> } | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
@@ -199,28 +206,28 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
       name: name || s.name,
       neighborhood: neighborhood ?? value.neighborhood,
       place: { placeId, address, lat, lng },
+      byName: false,
     });
   }
 
   function searchAgain() {
     cancelPick();
-    setManual(false);
     setFound(null);
     setSuggested(null);
     setQuery(value.name);
-    onChange({ ...value, neighborhood: "", place: null });
+    onChange({ ...value, neighborhood: "", place: null, byName: false });
   }
 
   const header = (
-    <div className="flex items-center justify-between">
-      <p className={label}>New cafe</p>
+    <div className="flex items-center justify-between gap-3">
+      <p className={label}>{value.place ? "From Google Maps" : manual ? "New cafe · by name" : "New cafe"}</p>
       <button
         type="button"
         onClick={() => {
           cancelPick();
           onChange(null);
         }}
-        className={linkButton}
+        className={`${linkButton} shrink-0 whitespace-nowrap`}
       >
         Search Sips instead
       </button>
@@ -351,8 +358,7 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
         type="button"
         onClick={() => {
           cancelPick();
-          setManual(true);
-          onChange({ ...value, name: text || value.name, place: null });
+          onChange({ ...value, name: text || value.name, place: null, byName: true });
         }}
         className={`${linkButton} -ml-2`}
       >
