@@ -106,7 +106,16 @@ test("multi: cafe score counts visits; earlier visits open from the keyboard", a
   await page.keyboard.press("Enter");
   await expect(first).toHaveAttribute("open", "");
   await expect(first.getByText("Flat white", { exact: true })).toBeVisible();
-  // Closed <details> content is never checked above; check it open.
+});
+
+test("multi: opened earlier visits pass axe and fit the viewport", async ({ page }) => {
+  // Closed <details> content is never checked by the per-case test; open every one first.
+  // A fresh load, so no header link is mid colour-transition from a keyboard walk.
+  await page.goto(url("multi"));
+  await page.getByTestId("earlier-visits").locator("details").evaluateAll((all) => {
+    for (const d of all) (d as HTMLDetailsElement).open = true;
+  });
+  await expect(page.getByTestId("earlier-visits").getByText("Flat white", { exact: true })).toBeVisible();
   await expectA11y(page);
   await expectNoHorizontalScroll(page);
 });
@@ -117,7 +126,8 @@ test("bare: empty sections are left out entirely", async ({ page }) => {
     await expect(page.getByTestId(id), id).toHaveCount(0);
   }
   await expect(page.getByTestId("review-meta")).not.toContainText(/\bby\b/i);
-  await expect(page.locator("main img")).toHaveCount(0);
+  // Only decorative art (the divider) is left: no photo frames.
+  await expect(page.locator('main img:not([aria-hidden="true"])')).toHaveCount(0);
 });
 
 test("long: nothing scrolls sideways", async ({ page }) => {

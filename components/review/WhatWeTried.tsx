@@ -52,7 +52,7 @@ function DrinkPicture({ drink, unoptimizedImages }: { drink: VisitDrink; unoptim
   if (hasPicture(drink) && drink.doodle) {
     return (
       <div className="flex w-24 shrink-0 items-start justify-center pt-1 sm:w-28">
-        <Illustration slot={drink.doodle} className="h-16 w-16 text-espresso" />
+        <Illustration slot={drink.doodle} className="h-16 w-16 object-contain" />
       </div>
     );
   }
