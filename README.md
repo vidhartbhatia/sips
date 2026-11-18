@@ -22,7 +22,8 @@ Live at **[oursips.com](https://oursips.com)**.
 - **Map:** every published cafe on a Mapbox map, with search and filters for neighborhood and
   minimum rating.
 - **Want to go:** a list of cafes we haven't reviewed yet.
-- **Blog:** MDX posts in `content/blog/`. The pipeline works, but no posts are published yet.
+- **Stories:** MDX posts in `content/blog/`, served at `/stories` (`/blog` redirects there). The
+  nav links to Stories once one is published; none are yet.
 - **Admin** (two authors only): add cafes (addresses geocoded server-side), write reviews as
   drafts and publish them, upload photos, and bulk-import saved places and lists from a Google
   Takeout export.

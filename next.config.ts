@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // Stories used to live at /blog. Keep old links working.
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/stories", permanent: true },
+      { source: "/blog/:slug", destination: "/stories/:slug", permanent: true },
+    ];
+  },
   // P1-26: Static browser hardening headers. Per-request CSP is set in
   // proxy.ts (needs a nonce). HSTS preload is intentionally left out for now; preload
   // submission is a separate decision.

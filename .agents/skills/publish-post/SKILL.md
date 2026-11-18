@@ -1,6 +1,6 @@
 ---
 name: publish-post
-description: Turn a draft (docx, markdown, Google Doc export, notes, voice-memo transcript, photos) into a published Sips blog post or cafe review. Use when someone says "publish this", "post this", "turn this into a blog post", "add a review for <cafe>", or hands over a writing file.
+description: Turn a draft (docx, markdown, Google Doc export, notes, voice-memo transcript, photos) into a published Sips story (blog post) or cafe review. Use when someone says "publish this", "post this", "turn this into a blog post", "add a review for <cafe>", or hands over a writing file.
 ---
 
 # Publish a post on Sips
@@ -10,9 +10,10 @@ Keep her voice: fix typos and structure, but don't rewrite her tone or opinions.
 
 ## 1. Decide what it is
 
-- **Blog post** (story, guide, roundup): an MDX file in `content/blog/`. Follow the steps below.
 - **Story** (a free-form post: a guide, a roundup, a longer piece about one place): an MDX file
-  in `content/blog/`. Follow the steps below and open a PR.
+  in `content/blog/`, shown at `/stories/<slug>`. Follow the steps below and open a PR. The
+  folder, the `blog` storage bucket and the upload script keep the old "blog" name; only the
+  site says "Stories".
 - **Cafe review** (one visit: photos, drinks, scores, verdict): the web admin is the source of
   truth. She captures it at https://oursips.com/admin/capture (signed in with the magic link or
   the 6-digit code from the email). It always saves a private draft; she publishes it later
@@ -51,8 +52,8 @@ Keep her voice: fix typos and structure, but don't rewrite her tone or opinions.
 ---
 title: "Matcha crawl through Capitol Hill"
 date: "2026-11-16"
-author: "L."            # or "V."
-excerpt: "One sentence for the blog index."
+author: "Lea"           # or "Vids" (the public names)
+excerpt: "One sentence for the Stories page."
 cover: "<url printed by the upload script>"   # optional
 draft: false
 ---
@@ -65,10 +66,10 @@ The slug is lowercase-kebab and matches the filename. Write alt text for every i
 
 ## 4. Preview, then publish
 
-1. Run `npm run dev`, open `http://localhost:3000/blog/<slug>`, and show her a screenshot.
+1. Run `npm run dev`, open `http://localhost:3000/stories/<slug>`, and show her a screenshot.
    Make any changes she asks for.
 2. When she's happy, run `npm run build`, then commit (`Post: <title>`) and push to `main`.
-3. Tell her it'll be live at `https://oursips.com/blog/<slug>` in a couple of minutes, then
+3. Tell her it'll be live at `https://oursips.com/stories/<slug>` in a couple of minutes, then
    open it and show her.
 4. If she wants V. to read it first, push to a `post/<slug>` branch and open a PR instead. It
    gets a preview link.

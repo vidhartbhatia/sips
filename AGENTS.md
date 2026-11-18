@@ -83,7 +83,7 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
 | Types | `lib/supabase/types.ts` | Keep aligned with the real schema |
 | Storage | `lib/storage.ts` | Abstraction over Supabase Storage |
 | Auth | `lib/auth.ts` | `getUser()`, `requireAuth()`, `isAllowedEmail()` |
-| Blog posts | `content/blog/*.mdx` | Rendered by `app/blog/`. Photos go in Supabase Storage via `scripts/upload-blog-images.mjs` |
+| Stories | `content/blog/*.mdx` | Rendered by `app/stories/` at `/stories` (`/blog` redirects). Photos go in Supabase Storage via `scripts/upload-blog-images.mjs` |
 | Admin UI | `app/admin/` | Review/cafe CRUD, quick-add, import. Protected by middleware |
 
 ## Conventions (hard rules)

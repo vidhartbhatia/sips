@@ -29,7 +29,7 @@ test.describe("public pages render", () => {
   const pages: { url: string; heading: string | RegExp }[] = [
     { url: "/", heading: "Sips" },
     { url: "/cafes", heading: "All Cafes" },
-    { url: "/blog", heading: "Blog" },
+    { url: "/stories", heading: "Stories" },
     { url: "/about", heading: "About Sips" },
   ];
 
@@ -142,7 +142,7 @@ test.describe("launch gating", () => {
 test.describe("security", () => {
   // Static pages are the ones that silently lose the nonce if the root layout's
   // `connection()` goes away, so they're the important ones here.
-  const csPages = ["/", "/cafes", "/map", "/blog", "/about", "/login"];
+  const csPages = ["/", "/cafes", "/map", "/stories", "/about", "/login"];
 
   test("every page sends a CSP and every <script> carries its nonce", async ({ request }) => {
     for (const url of csPages) {
@@ -174,21 +174,22 @@ test.describe("security", () => {
     await expect(page.getByRole("button", { name: "Send magic link" })).toBeVisible();
   });
 
-  test("a draft blog post 404s and isn't listed", async ({ page, request }) => {
+  test("a draft story 404s and isn't listed", async ({ page, request }) => {
     const draft = await findDraftSlug();
     test.skip(!draft, "no draft post in content/blog to test against");
 
-    const res = await request.get(`/blog/${draft}`);
+    const res = await request.get(`/stories/${draft}`);
     expect(res.status()).toBe(404);
 
-    await page.goto("/blog");
-    await expect(page.locator(`a[href="/blog/${draft}"]`)).toHaveCount(0);
+    await page.goto("/stories");
+    await expect(page.locator(`a[href="/stories/${draft}"]`)).toHaveCount(0);
   });
 
-  test("path-traversal blog slugs 404", async ({ request }) => {
+  test("path-traversal story slugs 404", async ({ request }) => {
     // Percent-encoded so the URL isn't normalised before it reaches Next.
     for (const slug of ["..%2F..%2Fpackage", "..%2F..%2F.env.local", "%2E%2E%2Fhello-sips"]) {
-      const res = await request.get(`/blog/${slug}`);
+      // /stories directly, not through the /blog redirect.
+      const res = await request.get(`/stories/${slug}`);
       expect(res.status(), slug).toBe(404);
       expect(await res.text(), slug).not.toContain('"dependencies"');
     }

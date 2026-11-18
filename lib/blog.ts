@@ -70,6 +70,29 @@ export async function getPost(
   return meta ? { meta, content } : null;
 }
 
+// The leading `---` block, including its closing fence.
+const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
+
+/**
+ * A post's metadata from its frontmatter alone. The body is never compiled, so a half-written
+ * draft can't break the listing, or the root layout, which reads this on every page. The same
+ * parser as getPost (compileMDX's parseFrontmatter) runs on the frontmatter block only.
+ */
+async function readMeta(slug: string): Promise<PostMeta | null> {
+  const source = await readSource(slug);
+  if (!source) return null;
+  try {
+    const { frontmatter } = await compileMDX<Record<string, unknown>>({
+      source: source.match(FRONTMATTER_RE)?.[0] ?? "",
+      options: { parseFrontmatter: true },
+    });
+    return toMeta(slug, frontmatter);
+  } catch (error) {
+    console.error(`content/blog/${slug}.mdx: unreadable frontmatter, skipped`, error);
+    return null;
+  }
+}
+
 export async function getAllPosts(): Promise<PostMeta[]> {
   let files: string[];
   try {
@@ -78,11 +101,37 @@ export async function getAllPosts(): Promise<PostMeta[]> {
     return [];
   }
   const posts = await Promise.all(
-    files
-      .filter((f) => f.endsWith(".mdx"))
-      .map(async (file) => (await getPost(file.replace(/\.mdx$/, "")))?.meta ?? null),
+    files.filter((f) => f.endsWith(".mdx")).map((file) => readMeta(file.replace(/\.mdx$/, ""))),
   );
   return posts
     .filter((p): p is PostMeta => p !== null)
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** "2026-11-16" → "November 16, 2026", the same in every timezone. */
+export function formatStoryDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return isoDate;
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+let publishedStories: Promise<PostMeta[]> | null = null;
+
+/**
+ * Published stories, newest first. The root layout calls this on every request (the nav shows
+ * Stories only once one exists), so production memoizes it per server process: deployed files
+ * never change. Dev reads the folder each time, so a new post shows up without a restart.
+ */
+export function listPublishedStories(): Promise<PostMeta[]> {
+  if (process.env.NODE_ENV !== "production") return getAllPosts();
+  publishedStories ??= getAllPosts().catch((error: unknown) => {
+    publishedStories = null;
+    throw error;
+  });
+  return publishedStories;
 }
