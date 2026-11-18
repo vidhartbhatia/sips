@@ -16,20 +16,62 @@ Setting `Content-Security-Policy` via Next.js middleware + `next.config.ts` work
 
 **Verification pattern:** Wait 20-30s after deploy, then re-curl. If still missing, hit a deeper path like `/cafes` which forces middleware execution.
 
-## 2026-04 — `gh pr merge` clobbers dirty working tree
-
-When the PR branch is checked out locally AND has uncommitted changes, `gh pr merge --squash --delete-branch` succeeds on GitHub but fails the local branch-switch cleanup with `error: Your local changes to the following files would be overwritten by checkout`. Merge still happens — only the local cleanup fails.
-
-**Recovery pattern:**
-```bash
-git stash push -m "pre-merge" -- <specific files>
-git checkout main && git pull --rebase origin main
-git stash pop
-# now resolve any local-only changes that weren't in the PR
-```
-
 ## 2026-04 — Vercel env vars default to Production scope only
 
 Adding an env var with `npx vercel env add VARNAME` defaults to Production. Preview deploys will throw `MIDDLEWARE_INVOCATION_FAILED` because the var is missing.
 
 **Fix:** Always add to Preview scope explicitly: `npx vercel env add VARNAME preview --value "..." -y`.
+
+## 2026-11 — Merging on GitHub leaks the account email
+
+`gh pr merge` and the web UI's merge button write the merge commit with the GitHub *account*
+email, not the noreply address. In a public repo that email is then permanent: a history rewrite
+doesn't purge it, because GitHub keeps orphaned commits reachable by SHA.
+
+**Rule:** merge locally (`git merge --no-ff`), run `npm run verify`, then push. Keep GitHub email
+privacy and "block pushes that expose my email" on.
+
+## 2026-11 — A phone photo failed after every check passed
+
+Unit tests, CI and Codex all passed, but the first real upload from an Android phone failed: the
+browser couldn't decode the camera JPEG for resizing, so the photo never left the phone. Fixed
+with a second decoder and an "upload the original if it's small" fallback. The root cause on
+that phone was never confirmed.
+
+**Rule:** for anything that handles real devices or real files (uploads, login on a phone), a
+passing test suite isn't done. Do one real end-to-end try on a phone (preview or production with
+a throwaway draft, then delete it) before calling it shipped. iPhone HEIC is still unconfirmed
+until L.'s first upload.
+
+## 2026-11 — Typecheck errors after a route rename, pushed anyway
+
+After `/blog` became `/stories`, `tsc` reported errors from stale generated route types in
+`.next/types`. The build regenerated them and the push went out on "the build passed".
+
+**Rule:** use `npm run verify` (runs `next typegen` first, then tsc, lint, tests and build, and
+stops on the first failure). The pre-push hook runs it on every push to `main`.
+
+## 2026-11 — Reviews that review the wrong thing, or never finish
+
+- A Codex review covered a commit older than the PR head, so the last change went unreviewed.
+- `codex exec` waited on stdin for hours with no CPU use.
+- A `while pgrep -f "codex exec"` wait loop never exited, because its own command line matched.
+
+**Rule:** run Codex through `scripts/with-timeout.sh` (closes stdin, kills the whole process tree
+on timeout), pin the head SHA, and wait on the background task, never on `pgrep`. Details are in
+`.agents/skills/cross-model-review/SKILL.md`.
+
+## 2026-11 — What the test setup can't see
+
+- **PGlite DB tests run the SQL but not PostgREST.** An ambiguous embed (two foreign keys between
+  `reviews` and `photos` after migration 008) or a missing grant on a view only shows up through
+  the real API. After a migration, check the affected queries against the API on the preview or
+  production, not just in PGlite.
+- **Signed-in flows have no automated browser test.** Capture, edit, draft preview and publish
+  are covered by unit tests only. Until that changes, a human tries them on a real draft after
+  each change to those pages.
+- **Some smoke tests skip until a cafe is published.** They first run for real on L.'s first
+  publish, so watch CI on that day.
+- **If production breaks after a merge,** roll back first (`vercel rollback`, or promote the
+  previous deployment in the Vercel dashboard), then fix forward on a branch. A rollback doesn't
+  undo a database migration, so migrations stay additive.
