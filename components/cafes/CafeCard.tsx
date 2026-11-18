@@ -1,7 +1,9 @@
 // design-rules: enforced
 import Image from "next/image";
 import Link from "next/link";
+import { Illustration } from "@/components/ui/Illustration";
 import { ScoreNumeral } from "@/components/ui/Score";
+import { doodleFor, type DoodleSlot } from "@/lib/illustrations";
 
 export interface CardCafe {
   id: string;
@@ -29,34 +31,52 @@ const SIZES = {
   featured: "(min-width: 768px) 640px, 100vw",
 } as const;
 
+const HOVER_LIFT =
+  "transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100";
+
 /**
- * One reviewed cafe. The whole card is a single link. No cover means no image area at all:
- * the card is text only, never a placeholder box.
+ * The doodle for a cafe with no cover. Cards carry no drink data, so it reads the name and
+ * verdict ("Sample Matcha House" → matcha) and falls back to the coffee cup.
+ */
+function coverDoodle(name: string, verdict: string | null | undefined): DoodleSlot {
+  return doodleFor([name, verdict].filter(Boolean).join(" "), "drink") ?? "coffee";
+}
+
+/**
+ * One reviewed cafe. The whole card is a single link. With no cover, a paper panel of the
+ * same 3:2 size holds a decorative drink doodle, so every card in a row lines up.
  */
 export function CafeCard({ cafe, summary, variant }: CafeCardProps) {
   const featured = variant === "featured";
-  const hasCover = cafe.cover_photo_url !== null;
 
   return (
     <Link
       href={`/cafes/${cafe.slug}`}
       className={`group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-terracotta-dark ${
-        featured && hasCover ? "md:grid md:grid-cols-[3fr_2fr] md:items-center md:gap-10" : ""
+        featured ? "md:grid md:grid-cols-[3fr_2fr] md:items-center md:gap-10" : ""
       }`}
     >
-      {cafe.cover_photo_url && (
-        <div className="relative aspect-[3/2] overflow-hidden rounded-lg bg-stone">
+      <div
+        data-testid="card-cover"
+        className="relative flex aspect-[3/2] items-center justify-center overflow-hidden rounded-lg bg-stone"
+      >
+        {cafe.cover_photo_url ? (
           <Image
             src={cafe.cover_photo_url}
             alt=""
             fill
             sizes={SIZES[variant]}
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className={`object-cover ${HOVER_LIFT}`}
           />
-        </div>
-      )}
+        ) : (
+          <Illustration
+            slot={coverDoodle(cafe.name, summary?.verdict)}
+            className={`h-2/5 w-auto ${HOVER_LIFT}`}
+          />
+        )}
+      </div>
 
-      <div className={hasCover ? (featured ? "mt-4 md:mt-0" : "mt-4") : ""}>
+      <div className={featured ? "mt-4 md:mt-0" : "mt-4"}>
         <h3
           className={`font-heading leading-tight text-espresso transition-colors group-hover:text-terracotta-dark ${
             featured ? "text-4xl" : "text-3xl"

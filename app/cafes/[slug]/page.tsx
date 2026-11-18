@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import { ReviewArticle } from "@/components/review/ReviewArticle";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { getStoriesForCafe } from "@/lib/blog";
 import { buildReviewPage } from "@/lib/review-view";
 import { cafeJsonLd, cafeMetadata } from "@/lib/seo";
 import { getCafeBySlug } from "@/lib/supabase/queries";
@@ -42,7 +43,7 @@ export default async function CafePage({ params }: CafePageProps) {
       <JsonLd data={cafeJsonLd(page.view, page.geo)} />
       <Header />
       <main className="flex-1">
-        <ReviewArticle view={page.view} />
+        <ReviewArticle view={page.view} featuredIn={await getStoriesForCafe(slug)} />
       </main>
       <Footer />
     </div>

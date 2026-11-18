@@ -120,6 +120,18 @@ test("multi: opened earlier visits pass axe and fit the viewport", async ({ page
   await expectNoHorizontalScroll(page);
 });
 
+test("Featured in: links to each story, and is left out when there are none", async ({ page }) => {
+  await page.goto(url("multi"));
+  const section = page.getByRole("region", { name: "Featured in" });
+  await expect(section.getByRole("link", { name: "A matcha crawl through Capitol Hill" })).toHaveAttribute(
+    "href",
+    "/stories/fixture-matcha-crawl",
+  );
+
+  await page.goto(url("single"));
+  await expect(page.getByRole("heading", { name: "Featured in" })).toHaveCount(0);
+});
+
 test("bare: empty sections are left out entirely", async ({ page }) => {
   await page.goto(url("bare"));
   for (const id of ["what-we-tried", "review-story", "photo-strip", "review-hero", "earlier-visits"]) {

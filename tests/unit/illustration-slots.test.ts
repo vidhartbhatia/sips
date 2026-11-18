@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fixturesEnabled } from "@/lib/fixtures";
 import { DIVIDER, DOODLES, ILLUSTRATIONS, ORNAMENTS, doodleFor } from "@/lib/illustrations";
@@ -38,6 +40,22 @@ describe("illustration slots", () => {
       expect(isAsset(asset)).toBe(true);
     }
     if (DIVIDER) expect(isAsset(DIVIDER)).toBe(true);
+  });
+});
+
+describe("no raw illustration paths outside the registry", () => {
+  // Every file under app/, components/ and lib/, marked for design rules or not. Pages use
+  // slots, so deleting or swapping an asset only ever touches lib/illustrations.ts.
+  const ROOT = path.resolve(import.meta.dirname, "../..");
+  const REGISTRY = path.join("lib", "illustrations.ts");
+
+  it("only lib/illustrations.ts names a /illustrations/ file", () => {
+    const offenders = ["app", "components", "lib"]
+      .flatMap((dir) => readdirSync(path.join(ROOT, dir), { withFileTypes: true, recursive: true }))
+      .filter((e) => e.isFile() && /\.(?:tsx?|css|mdx?)$/.test(e.name))
+      .map((e) => path.relative(ROOT, path.join(e.parentPath, e.name)))
+      .filter((file) => file !== REGISTRY && /["'`(]\/illustrations\//.test(readFileSync(path.join(ROOT, file), "utf8")));
+    expect(offenders, offenders.join("\n")).toEqual([]);
   });
 });
 

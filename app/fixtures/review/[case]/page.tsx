@@ -9,7 +9,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { fixturesEnabled } from "@/lib/fixtures";
 import { publishBlocker } from "@/lib/review-view";
 import { cafeJsonLd, cafeMetadata, NOINDEX } from "@/lib/seo";
-import { FIXTURE_GEO, loadFixture } from "../cases";
+import { featuredIn, FIXTURE_GEO, loadFixture } from "../cases";
 
 // Per request, so `fixturesEnabled()` is never baked in at build time.
 export const dynamic = "force-dynamic";
@@ -47,7 +47,11 @@ export default async function ReviewFixturePage({ params }: ReviewFixturePagePro
       <JsonLd data={cafeJsonLd(view, FIXTURE_GEO)} />
       <Header />
       <main className="flex-1">
-        <ReviewArticle view={view} banner={banner} />
+        <ReviewArticle
+          view={view}
+          banner={banner}
+          featuredIn={Object.hasOwn(featuredIn, name) ? featuredIn[name] : []}
+        />
       </main>
       <Footer />
     </div>

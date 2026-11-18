@@ -229,6 +229,11 @@ const draft = toPreviewInput({
 
 export const cases: Record<string, ReviewPageInput> = { single, multi, bare, long, draft: draft.input };
 
+/** "Featured in" stories per case. Only `multi` has any, so the others prove the section is omitted. */
+export const featuredIn: Record<string, { slug: string; title: string }[]> = {
+  multi: [{ slug: "fixture-matcha-crawl", title: "A matcha crawl through Capitol Hill" }],
+};
+
 /** Cases rendered as the admin preview (lead visit and banner) rather than the public page. */
 export const previewLeads: Record<string, string> = { draft: draft.leadVisitId };
 

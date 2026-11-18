@@ -1,5 +1,4 @@
 // design-rules: enforced
-import Link from "next/link";
 import { Illustration } from "@/components/ui/Illustration";
 import FooterNav from "@/components/layout/FooterNav";
 
@@ -28,21 +27,6 @@ export default function Footer() {
               Explore
             </h4>
             <FooterNav />
-          </div>
-
-          {/* Info */}
-          <div>
-            <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
-              About
-            </h4>
-            <nav className="mt-3 flex flex-col gap-2">
-              <Link
-                href="/about"
-                className="text-sm text-espresso-muted transition-colors hover:text-terracotta-dark"
-              >
-                About Us
-              </Link>
-            </nav>
           </div>
         </div>
 

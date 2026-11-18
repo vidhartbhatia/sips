@@ -4,46 +4,15 @@ import path from "node:path";
 import { compileMDX } from "next-mdx-remote/rsc";
 import type { ReactElement } from "react";
 import type { MDXComponents } from "mdx/types";
+import { SLUG_RE, toMeta, type PostMeta } from "@/lib/blog-meta";
 
 const BLOG_DIR = path.join(process.cwd(), "content", "blog");
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export interface PostMeta {
-  slug: string;
-  title: string;
-  date: string;
-  author?: string;
-  excerpt?: string;
-  cover?: string;
-}
+export type { PostMeta } from "@/lib/blog-meta";
 
 export interface Post {
   meta: PostMeta;
   content: ReactElement;
-}
-
-const optionalString = (v: unknown): string | undefined =>
-  typeof v === "string" && v.trim() !== "" ? v : undefined;
-
-/**
- * Single source of truth for frontmatter → PostMeta. Returns null for drafts and for
- * invalid posts. Anything other than literal YAML `draft: false` (or no `draft` key)
- * counts as a draft, so a typo never publishes by accident.
- */
-function toMeta(slug: string, fm: Record<string, unknown>): PostMeta | null {
-  if ("draft" in fm && fm.draft !== false) return null;
-  const title = optionalString(fm.title);
-  const rawDate = fm.date instanceof Date ? fm.date.toISOString().slice(0, 10) : fm.date;
-  const date = optionalString(rawDate);
-  if (!title || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  return {
-    slug,
-    title,
-    date,
-    author: optionalString(fm.author),
-    excerpt: optionalString(fm.excerpt),
-    cover: optionalString(fm.cover),
-  };
 }
 
 async function readSource(slug: string): Promise<string | null> {
@@ -134,4 +103,10 @@ export function listPublishedStories(): Promise<PostMeta[]> {
     throw error;
   });
   return publishedStories;
+}
+
+/** Published stories whose `cafes:` frontmatter lists this cafe, newest first. Feeds "Featured in". */
+export async function getStoriesForCafe(slug: string): Promise<{ slug: string; title: string }[]> {
+  const stories = await listPublishedStories();
+  return stories.filter((s) => s.cafes.includes(slug)).map((s) => ({ slug: s.slug, title: s.title }));
 }

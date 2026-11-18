@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
+import { Illustration } from "@/components/ui/Illustration";
+import { DOODLES, ORNAMENTS, type DoodleSlot, type OrnamentSlot } from "@/lib/illustrations";
 import { SipsCup, SipsLabel } from "@/components/ui/SipsRating";
 import SipsRating from "@/components/ui/SipsRating";
 
@@ -39,13 +40,7 @@ export default function DesignSystemPage() {
       <header className="border-b border-espresso/[0.06]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <Image
-              src="/illustrations/coffee-cup.svg"
-              alt=""
-              width={28}
-              height={28}
-              className="opacity-60"
-            />
+            <Illustration slot="logo" className="h-7 w-auto" />
             <span className="font-heading text-2xl text-espresso">Sips</span>
           </div>
           <nav className="flex items-center gap-8">
@@ -90,12 +85,10 @@ export default function DesignSystemPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
-                <Image
-                  src="/illustrations/cafe-scene.svg"
-                  alt="Cafe table scene illustration"
-                  width={400}
-                  height={400}
-                  className="w-[320px] md:w-[400px]"
+                <Illustration
+                  slot="hero"
+                  alt="Watercolour of a Seattle cafe table"
+                  className="h-auto w-[320px] md:w-[400px]"
                 />
               </motion.div>
             </div>
@@ -122,32 +115,19 @@ export default function DesignSystemPage() {
             {/* Individual illustrations */}
             <motion.div {...fade} className="mt-12">
               <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-terracotta">
-                Drinks &amp; Food
+                Drink doodles
               </span>
               <div className="mt-6 flex flex-wrap items-end gap-10">
-                {[
-                  { src: "/illustrations/coffee-cup.svg", label: "coffee cup", w: 100 },
-                  { src: "/illustrations/matcha-bowl.svg", label: "matcha bowl", w: 100 },
-                  { src: "/illustrations/cocktail-glass.svg", label: "cocktail", w: 90 },
-                  { src: "/illustrations/takeaway-cup.svg", label: "takeaway", w: 80 },
-                  { src: "/illustrations/croissant.svg", label: "croissant", w: 100 },
-                ].map((item) => (
+                {(Object.keys(DOODLES) as DoodleSlot[]).map((slot) => (
                   <div
-                    key={item.label}
+                    key={slot}
                     className="flex flex-col items-center gap-3"
                   >
                     <div className="flex h-28 items-end">
-                      <Image
-                        src={item.src}
-                        alt={item.label}
-                        width={item.w}
-                        height={item.w}
-                        className="object-contain"
-                        style={{ width: item.w, height: "auto" }}
-                      />
+                      <Illustration slot={slot} alt={slot} className="h-24 w-auto" />
                     </div>
                     <span className="font-heading text-sm text-espresso-muted">
-                      {item.label}
+                      {slot}
                     </span>
                   </div>
                 ))}
@@ -157,49 +137,22 @@ export default function DesignSystemPage() {
             {/* Decorative */}
             <motion.div {...fade} className="mt-14">
               <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-terracotta">
-                Decorative &amp; Scenes
+                Page art &amp; ornaments
               </span>
               <div className="mt-6 flex flex-wrap items-end gap-12">
-                {[
-                  { src: "/illustrations/potted-plant.svg", label: "plant", w: 80 },
-                  { src: "/illustrations/cat-with-cup.svg", label: "sips cat", w: 120 },
-                  { src: "/illustrations/stacked-cups.svg", label: "stacked cups", w: 100 },
-                ].map((item) => (
+                {(["logo", "empty", "404", "about", ...(Object.keys(ORNAMENTS) as OrnamentSlot[])] as const).map((slot) => (
                   <div
-                    key={item.label}
+                    key={slot}
                     className="flex flex-col items-center gap-3"
                   >
                     <div className="flex h-32 items-end">
-                      <Image
-                        src={item.src}
-                        alt={item.label}
-                        width={item.w}
-                        height={item.w}
-                        className="object-contain"
-                        style={{ width: item.w, height: "auto" }}
-                      />
+                      <Illustration slot={slot} alt={slot} className="h-auto max-h-32 w-32 object-contain" />
                     </div>
                     <span className="font-heading text-sm text-espresso-muted">
-                      {item.label}
+                      {slot}
                     </span>
                   </div>
                 ))}
-              </div>
-            </motion.div>
-
-            {/* Icon set */}
-            <motion.div {...fade} className="mt-14">
-              <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-terracotta">
-                Icon Set
-              </span>
-              <div className="mt-6 rounded-xl bg-stone p-8">
-                <Image
-                  src="/illustrations/icon-set.svg"
-                  alt="Icon set — heart, star, camera, wifi, plug"
-                  width={500}
-                  height={100}
-                  className="w-full max-w-lg object-contain"
-                />
               </div>
             </motion.div>
           </div>
@@ -409,7 +362,7 @@ export default function DesignSystemPage() {
                   type: "cafe",
                   sips: 5,
                   tags: ["cozy", "specialty"],
-                  illustration: "/illustrations/coffee-cup.svg",
+                  illustration: "coffee" as const,
                 },
                 {
                   name: "Percy's & Co.",
@@ -417,7 +370,7 @@ export default function DesignSystemPage() {
                   type: "bar",
                   sips: 4,
                   tags: ["cocktails", "date night"],
-                  illustration: "/illustrations/cocktail-glass.svg",
+                  illustration: "tea" as const,
                 },
                 {
                   name: "Matcha Magic",
@@ -425,7 +378,7 @@ export default function DesignSystemPage() {
                   type: "cafe",
                   sips: 5,
                   tags: ["matcha", "modern"],
-                  illustration: "/illustrations/matcha-bowl.svg",
+                  illustration: "matcha" as const,
                 },
               ].map((cafe) => (
                 <div
@@ -434,12 +387,9 @@ export default function DesignSystemPage() {
                 >
                   {/* Illustration placeholder */}
                   <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-stone to-cream">
-                    <Image
-                      src={cafe.illustration}
-                      alt=""
-                      width={80}
-                      height={80}
-                      className="opacity-25 transition-opacity group-hover:opacity-40"
+                    <Illustration
+                      slot={cafe.illustration}
+                      className="h-20 w-auto opacity-25 transition-opacity group-hover:opacity-40"
                     />
                   </div>
 
@@ -494,12 +444,7 @@ export default function DesignSystemPage() {
               {...fade}
               className="mt-12 flex flex-col items-center gap-8 text-center"
             >
-              <Image
-                src="/illustrations/cat-with-cup.svg"
-                alt="Sips cat mascot"
-                width={180}
-                height={180}
-              />
+              <Illustration slot="about" alt="Two chairs and two cups" className="h-auto w-[180px]" />
 
               <div>
                 <h1 className="font-heading text-7xl text-espresso md:text-8xl">
@@ -543,13 +488,7 @@ export default function DesignSystemPage() {
               {...fade}
               className="mt-12 flex flex-col items-center gap-6 rounded-2xl border border-espresso/[0.06] bg-cream py-16 text-center"
             >
-              <Image
-                src="/illustrations/stacked-cups.svg"
-                alt=""
-                width={120}
-                height={120}
-                className="opacity-30"
-              />
+              <Illustration slot="empty" className="h-auto w-[120px]" />
               <div>
                 <h3 className="font-heading text-2xl text-espresso">
                   No cafes found
@@ -605,13 +544,7 @@ export default function DesignSystemPage() {
       <footer className="border-t border-espresso/[0.06] px-6 py-12">
         <div className="mx-auto flex max-w-6xl items-start justify-between">
           <div className="flex items-center gap-3">
-            <Image
-              src="/illustrations/coffee-cup.svg"
-              alt=""
-              width={32}
-              height={32}
-              className="opacity-40"
-            />
+            <Illustration slot="logo" className="h-8 w-auto" />
             <div>
               <span className="font-heading text-xl text-espresso">Sips</span>
               <p className="font-heading text-sm text-espresso-muted">
