@@ -178,11 +178,13 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
     const gen = ++pickGen.current;
     setPicking(s.placeId);
     setPickError(null);
-    const res = await getPlace(s.placeId, session.current).catch(
+    // The details call ends the session, so anything after it (another search or pick, even
+    // while this one is in flight) starts a new one.
+    const token = session.current;
+    session.current = crypto.randomUUID();
+    const res = await getPlace(s.placeId, token).catch(
       () => ({ ok: false, error: "Couldn't reach Google place search." }) as const,
     );
-    // The details call ends the session; a new search starts a new one.
-    session.current = crypto.randomUUID();
     // She typed, switched to "add by name only" or left new-cafe mode meanwhile: drop it.
     if (gen !== pickGen.current) return;
     setPicking(null);
