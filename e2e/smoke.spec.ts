@@ -90,7 +90,7 @@ test.describe("launch gating", () => {
     }
     for (const href of hrefs) {
       await page.goto(href);
-      await expect(page.getByText(/visited \d{4}-\d{2}-\d{2}/).first(), `${href} has no published review`).toBeVisible();
+      await expect(page.getByTestId("review-meta"), `${href} has no published review`).toBeVisible();
     }
   });
 
