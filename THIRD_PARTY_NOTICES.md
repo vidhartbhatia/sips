@@ -7,8 +7,6 @@ licenses and copyright, all MIT, and are not relicensed by this repository.
 | Directory | Upstream | License | Copyright |
 |---|---|---|---|
 | [`.agents/skills/playwright-best-practices/`](.agents/skills/playwright-best-practices/) | [currents-dev/playwright-best-practices-skill](https://github.com/currents-dev/playwright-best-practices-skill) | MIT ([LICENSE.md](.agents/skills/playwright-best-practices/LICENSE.md)) | © 2026 Currents Software Inc. |
-| [`.agents/skills/framer-motion-animator/`](.agents/skills/framer-motion-animator/) | [patricio0312rev/skills](https://github.com/patricio0312rev/skills) (`frontend/framer-motion-animator`) | MIT | © 2025 Patricio Marroquin |
-| [`.agents/skills/nextjs-app-router-patterns/`](.agents/skills/nextjs-app-router-patterns/) | [wshobson/agents](https://github.com/wshobson/agents) (`nextjs-app-router-patterns`), from an earlier revision | MIT | © 2024 Seth Hobson |
 | [`.agents/skills/karpathy-coding-discipline/`](.agents/skills/karpathy-coding-discipline/) | Adapted for Sips from [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) (formerly `forrestchang/andrej-karpathy-skills`) | MIT, as declared in the upstream README | The upstream project's authors |
 
 The other skills in `.agents/skills/` (`cross-model-review`, `publish-post`, `sips-design-loop`,

@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pushing to main is a publish (Vercel deploys it), so main only gets code that passes
+# `npm run verify`. Other branches push freely; CI checks them on the PR.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "pre-push: pushing to main, running npm run verify…"
+    npm run verify || {
+      echo "pre-push: verify failed, push blocked. Fix it, don't bypass it." >&2
+      exit 1
+    }
+  fi
+done
+exit 0

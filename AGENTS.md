@@ -64,10 +64,8 @@ blog posts, and new UI features that use the existing data.
 
 ```bash
 npm run dev        # local dev server → http://localhost:3000
-npm run build      # production build (must pass before pushing to main)
-npm run typecheck  # tsc --noEmit (must pass)
-npm run lint       # ESLint (0 problems; blocking in CI)
-npm run test:e2e   # Playwright smoke suite (read-only); run `npm run build` first
+npm run verify     # typegen, tsc, lint, tests, build; must pass before main (pre-push hook)
+npm run test:e2e   # Playwright suite (read-only against prod); run `npm run build` first
 ```
 
 Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Never commit
@@ -84,23 +82,22 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
 | Storage | `lib/storage.ts` | Abstraction over Supabase Storage |
 | Auth | `lib/auth.ts` | `getUser()`, `requireAuth()`, `isAllowedEmail()` |
 | Stories | `content/blog/*.mdx` | Rendered by `app/stories/` at `/stories` (`/blog` redirects). Photos go in Supabase Storage via `scripts/upload-blog-images.mjs` |
-| Admin UI | `app/admin/` | Review/cafe CRUD, quick-add, import. Protected by middleware |
+| Admin UI | `app/admin/` | Capture, review edit and preview, cafes, import. Protected by `proxy.ts` |
 
 ## Conventions (hard rules)
 
 - Public reads use the **anon** client; RLS is the guardrail. Service-role client only in
   authenticated Server Actions, plus one exception: `lib/storage.ts` signs photo URLs with it,
   and public queries pass it only paths that an anon (RLS-filtered) read just returned.
-- Every Server Action calls `requireAuth()` before mutating. Never rely on middleware alone.
+- Every Server Action calls `requireAuth()` before mutating. Never rely on `proxy.ts` alone.
 - Photos column is `photo_url` (renamed from `url`). It and `cafes.cover_photo_url` hold the
   object **path** in the private `photos` bucket, not a URL. Queries hand out signed URLs
   (`lib/storage.ts`); never build a public URL for a review photo.
 - Geocoding goes through `lib/google/geocode.ts` only.
 - Rating recalculation lives in `recalculateCafeRating()` (`lib/ratings.ts`), shared by every
   review mutation; zero reviews → `null`, never `0`. Keep it out of `"use server"` files.
-- Resize images client-side before upload with `lib/image-utils.ts` (max 2000px, JPEG 0.85).
-  Quick-add does this today; the review new/edit forms still upload originals, so fix that when
-  touching them.
+- Resize images client-side before upload with `lib/image-utils.ts` (max 2000px, JPEG 0.85),
+  one photo per request.
 - Framer Motion: always use `useMotionSafe()` from `lib/motion.ts` (reduced-motion).
 - Code style: ES2022+, `const`, no `any`, props interfaces, early returns.
 
@@ -108,7 +105,7 @@ Env vars: copy `.env.local.example` → `.env.local` and ask V. for values. Neve
 
 - Magic link only (`supabase.auth.signInWithOtp`). Google OAuth is off; restore guide in
   `docs/guides/google-oauth-setup.md`.
-- Allowlist: `ALLOWED_EMAILS` env var (Vercel Production + Preview). Checked in middleware,
+- Allowlist: `ALLOWED_EMAILS` env var (Vercel Production + Preview). Checked in `proxy.ts`,
   the auth callback, and `requireAuth()`.
 
 ## Design system — "Ink & Paper"
@@ -135,16 +132,22 @@ Full context: `.impeccable.md` and `docs/design-system.md`. Use the impeccable s
 - **At the start of every session, run `git pull`** (on `main`, or rebase your branch) so you
   have the other person's latest changes and the newest rules and skills. If `package.json`
   changed, run `npm install`. Do this quietly, without asking.
-- Small, safe changes go straight to `main` once `npm run typecheck` and `npm run build`
-  pass. Use a branch and PR (`feat/…`, `fix/…`, `post/…`) for big or risky changes. PRs get
-  a Vercel preview URL.
-- CI runs typecheck and build on PRs and on `main`.
+- Small, safe changes go straight to `main` once `npm run verify` passes. Use a branch and PR
+  (`feat/…`, `fix/…`, `post/…`) for big or risky changes. PRs get a Vercel preview URL.
+  Merge locally (`git merge --no-ff`), never with GitHub's merge button (see gotchas).
+- CI runs typecheck, lint, tests, build, the Playwright suite and a secrets scan.
 - Commits use GitHub **noreply** emails (`<id>+<user>@users.noreply.github.com`). This repo
   is public, so never commit with a personal email, and never put emails, keys or personal
   info in files.
 - Never force-push or rewrite pushed history.
-- Verify before claiming done: paste build/typecheck output or a preview screenshot.
-- For non-trivial changes, get a cross-model review (`cross-model-review` skill → Codex).
+- Verify before claiming done: paste `npm run verify` output or a preview screenshot. Real
+  devices and signed-in flows need one real try too (see `docs/gotchas.md`).
+- For non-trivial changes, get a cross-model review at the head SHA (`cross-model-review`).
+  Visible changes also get its design-review steps: screenshots, impeccable critique, a vision
+  review, and a human look before merge.
+- When something goes wrong, add it to `docs/gotchas.md` with the rule that prevents it, and
+  prefer a check (test, script, hook) over a sentence. Remove rules that no longer earn their
+  place.
 
 ## Where things live
 
