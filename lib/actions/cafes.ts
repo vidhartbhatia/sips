@@ -102,8 +102,8 @@ export async function updateCafe(
 // Public read: anon client + RLS, scoped to published cafes only.
 // Previously used the service-role admin client with no auth check, which
 // would have leaked draft cafe names through any client that could call
-// this action. Both current callers (admin quick-add, admin review/new)
-// only attach reviews to published cafes, so published-only is correct.
+// this action. Its caller (the capture form's CafePicker) only attaches
+// reviews to published cafes, so published-only is correct.
 export async function searchCafes(query: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
