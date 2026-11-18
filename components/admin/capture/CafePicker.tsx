@@ -144,6 +144,19 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
   // One token from the first keystroke to the pick; Google bills that as one session.
   const session = useRef<string>(crypto.randomUUID());
   const latest = useRef(0);
+  // Bumped by anything that changes what's being chosen, so a slow pick can't land after it.
+  const pickGen = useRef(0);
+  useEffect(() => {
+    const gen = pickGen;
+    return () => {
+      gen.current++;
+    };
+  }, []);
+
+  function cancelPick() {
+    pickGen.current++;
+    setPicking(null);
+  }
 
   const text = query.trim();
   const searching = !manual && !value.place && text.length >= 2 && found?.query !== text;
@@ -162,14 +175,17 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
   }, [text, manual, value.place]);
 
   async function pick(s: PlaceSuggestion) {
+    const gen = ++pickGen.current;
     setPicking(s.placeId);
     setPickError(null);
     const res = await getPlace(s.placeId, session.current).catch(
       () => ({ ok: false, error: "Couldn't reach Google place search." }) as const,
     );
-    setPicking(null);
     // The details call ends the session; a new search starts a new one.
     session.current = crypto.randomUUID();
+    // She typed, switched to "add by name only" or left new-cafe mode meanwhile: drop it.
+    if (gen !== pickGen.current) return;
+    setPicking(null);
     if (!res.ok) {
       setPickError(res.error);
       return;
@@ -185,6 +201,7 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
   }
 
   function searchAgain() {
+    cancelPick();
     setManual(false);
     setFound(null);
     setSuggested(null);
@@ -195,7 +212,14 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
   const header = (
     <div className="flex items-center justify-between">
       <p className={label}>New cafe</p>
-      <button type="button" onClick={() => onChange(null)} className={linkButton}>
+      <button
+        type="button"
+        onClick={() => {
+          cancelPick();
+          onChange(null);
+        }}
+        className={linkButton}
+      >
         Search Sips instead
       </button>
     </div>
@@ -284,7 +308,10 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
         <input
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            cancelPick();
+            setQuery(e.target.value);
+          }}
           placeholder="Find it on Google Maps…"
           autoComplete="off"
           autoFocus
@@ -321,6 +348,7 @@ function NewCafe({ value, onChange, inputClass }: NewCafeProps) {
       <button
         type="button"
         onClick={() => {
+          cancelPick();
           setManual(true);
           onChange({ ...value, name: text || value.name, place: null });
         }}

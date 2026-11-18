@@ -181,7 +181,22 @@ test("a cafe added by name only saves as a draft but can't be published without 
   await page.goto("/admin/capture");
   await page.getByPlaceholder("Search cafes…").fill("E2E Manual");
   await page.getByRole("button", { name: /as a new cafe/ }).click();
+
+  // Pick a place, then switch to "add by name only" before Google answers: the late answer
+  // must not replace the name-only choice. (The pick's Server Action is held back here.)
+  await page.getByRole("button", { name: /E2E Place Cafe/ }).waitFor();
+  await page.route("**/admin/capture", async (route) => {
+    if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 1_500));
+    await route.continue();
+  });
+  const lateAnswer = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/admin/capture"));
+  await page.getByRole("button", { name: /E2E Place Cafe/ }).click();
   await page.getByRole("button", { name: /Add by name only/ }).click();
+  await lateAnswer;
+  await page.unroute("**/admin/capture");
+  await expect(page.getByText(/No address yet/)).toBeVisible();
+  await expect(page.getByTestId("new-cafe-address")).toHaveCount(0);
+
   await page.getByLabel("Cafe name").fill("E2E Manual Cafe");
   await page.getByLabel("Neighbourhood").selectOption("Ballard");
 
