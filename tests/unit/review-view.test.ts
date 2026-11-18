@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pickCafeCover } from "@/lib/cover-photo";
-import { buildReviewPage, toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
+import { buildReviewPage, publishBlocker, toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
+import type { getCafeBySlug } from "@/lib/supabase/queries";
 import type { Item, Photo, Review, ReviewAuthor } from "@/lib/supabase/types";
 
 type Visit = Review & { author: ReviewAuthor | null };
@@ -318,6 +319,31 @@ describe("buildReviewPage", () => {
     expect(view?.lead.verdict).toBe("Worth the walk.");
     expect(view?.cafe.tags).toEqual(["cozy"]);
     expect(view?.cafe.mapsUrl).toContain("google.com/maps");
+  });
+});
+
+// Compile-time check for PR G: the public query's result feeds buildReviewPage as is.
+type CafePage = NonNullable<Awaited<ReturnType<typeof getCafeBySlug>>>;
+export const cafePageFits = (d: CafePage): ReviewPageInput => ({
+  cafe: d,
+  reviews: d.reviews,
+  items: d.items,
+  photos: d.photos,
+});
+
+describe("publishBlocker", () => {
+  it("names the unscored drinks of a draft", () => {
+    const out = input({
+      reviews: [visit("v1", { status: "draft" })],
+      items: [item("i1", "v1", { name: "Cortado", rating: null }), item("i2", "v1", { rating: 4 })],
+    });
+    expect(publishBlocker(out, "v1")).toBe("Score every drink before publishing: Cortado.");
+  });
+
+  it("is null for a publishable draft, a published visit or an unknown id", () => {
+    expect(publishBlocker(input({ reviews: [visit("v1", { status: "draft" })] }), "v1")).toBeNull();
+    expect(publishBlocker(input({ items: [item("i1", "v1", { rating: null })] }), "v1")).toBeNull();
+    expect(publishBlocker(input(), "nope")).toBeNull();
   });
 });
 

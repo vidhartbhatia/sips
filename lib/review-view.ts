@@ -6,6 +6,7 @@
 import { formatMonthYear, mapsUrl, toParagraphs } from "@/lib/format";
 import { doodleFor, type DoodleSlot } from "@/lib/illustrations";
 import { averageRating } from "@/lib/ratings";
+import { canPublish } from "@/lib/review-rules";
 import type { Cafe, Item, Photo, Review, ReviewAuthor } from "@/lib/supabase/types";
 
 type Visit = Review & { author: ReviewAuthor | null };
@@ -174,4 +175,15 @@ export function toPreviewInput(rows: {
     },
     leadVisitId: rows.review.id,
   };
+}
+
+/**
+ * Why a draft can't be published yet ("Score every drink before publishing: Cortado."), or
+ * null when it can, or when the visit is already published or not in the input.
+ */
+export function publishBlocker(input: ReviewPageInput, visitId: string): string | null {
+  const visit = input.reviews.find((r) => r.id === visitId);
+  if (!visit || visit.status !== "draft") return null;
+  const check = canPublish(visit, input.items.filter((i) => i.review_id === visitId));
+  return check.ok ? null : check.reason;
 }

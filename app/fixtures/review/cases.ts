@@ -2,7 +2,7 @@
 // e2e/review.spec.ts. Fictional cafe and text; photos are inline SVG rectangles, so no image
 // files are committed and nothing is fetched.
 
-import type { ReviewPageInput } from "@/lib/review-view";
+import { toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
 import type { Item, Photo, Review, ReviewAuthor } from "@/lib/supabase/types";
 
 type Visit = Review & { author: ReviewAuthor | null };
@@ -203,4 +203,31 @@ const long: ReviewPageInput = {
   ],
 };
 
-export const cases: Record<string, ReviewPageInput> = { single, multi, bare, long };
+// The admin preview of a draft: dated before the published visit, yet it leads, and one
+// drink is still unscored, so the banner says why it can't be published.
+const P1 = "2026-11-10";
+const P0 = "2026-11-03";
+const draft = toPreviewInput({
+  review: visit("d-draft", P0, {
+    status: "draft",
+    author: LEA,
+    overall_rating: 3,
+    verdict: "Lovely room, but the espresso ran thin today.",
+    note: STORY[0],
+  }),
+  cafe: cafe("Larkspur Coffee", ["cozy", "great light"]),
+  published: [
+    visit("d-pub", P1, { author: VIDS, overall_rating: 5, verdict: "Still our favourite morning spot." }),
+  ],
+  items: [
+    drink("d-cortado", "d-draft", P0, { name: "Cortado", rating: null }),
+    drink("d-matcha", "d-draft", P0, { name: "Iced matcha latte", type: "Matcha", rating: 4 }),
+    drink("d-flat", "d-pub", P1, { name: "Flat white", rating: 5 }),
+  ],
+  photos: [pic("d-hero", "d-draft", P0, LANDSCAPE), pic("d-pub-hero", "d-pub", P1, LANDSCAPE)],
+});
+
+export const cases: Record<string, ReviewPageInput> = { single, multi, bare, long, draft: draft.input };
+
+/** Cases rendered as the admin preview (lead visit and banner) rather than the public page. */
+export const previewLeads: Record<string, string> = { draft: draft.leadVisitId };

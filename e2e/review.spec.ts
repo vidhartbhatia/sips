@@ -10,6 +10,7 @@ import {
 /**
  * The review page (layout A) on the env-gated fixture routes (`/fixtures/review/{case}`,
  * data in app/fixtures/review/cases.ts). Runs on desktop and the 375px project. Read-only.
+ * The `draft` case renders as the admin preview does (lead visit plus banner).
  */
 
 const CASES = {
@@ -17,6 +18,7 @@ const CASES = {
   multi: "Larkspur Coffee",
   bare: "Larkspur Coffee",
   long: "The Very Long Name Coffee & Tea Roasters",
+  draft: "Larkspur Coffee",
 } as const;
 
 const url = (name: keyof typeof CASES) => `/fixtures/review/${name}`;
@@ -120,4 +122,25 @@ test("long: nothing scrolls sideways", async ({ page }) => {
   await expectNoHorizontalScroll(page);
   await expect(page.getByTestId("what-we-tried").locator("li")).toHaveCount(8);
   await expect(page.getByTestId("review-story").locator("p")).toHaveCount(6);
+});
+
+test("draft preview: the draft leads, the banner says why it can't publish, the score includes it", async ({ page }) => {
+  await page.goto(url("draft"));
+  const banner = page.getByRole("status");
+  await expect(banner).toContainText("Draft preview: only you can see this.");
+  await expect(banner).toContainText("Score every drink before publishing: Cortado.");
+  await expect(banner.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/admin/review/d-draft/edit");
+  await expect(page.getByTestId("review-verdict")).toHaveText("Lovely room, but the espresso ran thin today.");
+  await expect(
+    page.getByTestId("review-score").getByRole("img", { name: "Score 4 out of 5, 2 visits" }),
+  ).toBeVisible();
+  await expect(page.getByTestId("earlier-visits").locator("details")).toHaveCount(1);
+});
+
+test("admin preview: logged out, it redirects to /login", async ({ request }) => {
+  const response = await request.get("/admin/review/00000000-0000-0000-0000-000000000000/preview", {
+    maxRedirects: 0,
+  });
+  expect([302, 303, 307, 308]).toContain(response.status());
+  expect(new URL(response.headers()["location"] ?? "", "http://localhost").pathname).toBe("/login");
 });

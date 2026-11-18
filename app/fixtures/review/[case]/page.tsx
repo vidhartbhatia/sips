@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
+import { PreviewBanner } from "@/components/review/PreviewBanner";
 import { ReviewArticle } from "@/components/review/ReviewArticle";
 import { fixturesEnabled } from "@/lib/fixtures";
-import { buildReviewPage } from "@/lib/review-view";
-import { cases } from "../cases";
+import { buildReviewPage, publishBlocker } from "@/lib/review-view";
+import { cases, previewLeads } from "../cases";
 
 // Per request, so `fixturesEnabled()` is never baked in at build time.
 export const dynamic = "force-dynamic";
@@ -18,14 +19,24 @@ export default async function ReviewFixturePage({ params }: { params: Promise<{ 
   if (!fixturesEnabled()) notFound();
   const { case: name } = await params;
   const input = Object.hasOwn(cases, name) ? cases[name] : null;
-  const view = input ? buildReviewPage(input) : null;
-  if (!view) notFound();
+  const leadVisitId = Object.hasOwn(previewLeads, name) ? previewLeads[name] : undefined;
+  const view = input ? buildReviewPage(input, { leadVisitId }) : null;
+  if (!input || !view) notFound();
+
+  // Preview cases get the admin banner, exactly as /admin/review/[id]/preview renders it.
+  const banner = leadVisitId ? (
+    <PreviewBanner
+      reviewId={leadVisitId}
+      isDraft={view.lead.status === "draft"}
+      blocker={publishBlocker(input, leadVisitId)}
+    />
+  ) : undefined;
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <ReviewArticle view={view} />
+        <ReviewArticle view={view} banner={banner} />
       </main>
       <Footer />
     </div>
