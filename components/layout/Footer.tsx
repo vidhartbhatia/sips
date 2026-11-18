@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-8 md:grid-cols-3">
           {/* Brand */}
-          <div className="md:col-span-2">
+          <div>
             <div className="flex items-center gap-2">
               <Illustration slot="logo" className="h-[22px] w-auto" />
               <h3 className="font-heading text-2xl text-espresso">Sips</h3>
