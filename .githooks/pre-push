@@ -1,13 +1,17 @@
 #!/bin/sh
 # Pushing to main is a publish (Vercel deploys it), so main only gets code that passes
 # `npm run verify`. Other branches push freely; CI checks them on the PR.
-while read -r _local_ref _local_sha remote_ref _remote_sha; do
-  if [ "$remote_ref" = "refs/heads/main" ]; then
-    echo "pre-push: pushing to main, running npm run verify…"
-    npm run verify || {
-      echo "pre-push: verify failed, push blocked. Fix it, don't bypass it." >&2
-      exit 1
-    }
+# verify runs on the working tree, so the tree must be exactly the commit being pushed.
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "refs/heads/main" ] || continue
+  if [ "$local_sha" != "$(git rev-parse HEAD)" ] || [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    echo "pre-push: to push main, check out the exact commit you're pushing, with no uncommitted changes." >&2
+    exit 1
   fi
+  echo "pre-push: pushing to main, running npm run verify…"
+  npm run verify || {
+    echo "pre-push: verify failed, push blocked. Fix it, don't bypass it." >&2
+    exit 1
+  }
 done
 exit 0

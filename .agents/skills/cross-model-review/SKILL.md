@@ -22,36 +22,32 @@ Requires Codex CLI ≥ 0.169. Older clients reject the 6.1 models with `model_no
 `codex review --base` can't take custom instructions, so use `exec` and have it read the diff.
 Three things are mandatory, because each one bit us (see `docs/gotchas.md`):
 
-- **Close stdin** (`< /dev/null`). Otherwise `codex exec` can wait on input forever.
-- **Set a hard time limit.** macOS has no `timeout`, so use `perl -e 'alarm shift; exec @ARGV'`.
+- **Run it through `scripts/with-timeout.sh`.** It closes stdin (otherwise `codex exec` can
+  wait on input forever), sets a hard time limit that kills the whole process tree, and
+  returns non-zero on timeout (124) or if `codex` can't start (127).
 - **Pin the head SHA** and re-run after any new commit. A review of an older commit doesn't
   count.
 
 ```bash
 SHA=$(git rev-parse HEAD)
-perl -e 'alarm shift; exec @ARGV' 900 codex exec -m gpt-6-astra -s read-only \
-  "Review commit range main...$SHA: run git diff main...$SHA. Check correctness, security (auth/RLS/service-role misuse) and the rules in AGENTS.md. List findings by severity with file:line. No style nits. Under 500 words." \
-  < /dev/null
+scripts/with-timeout.sh 900 codex exec -m gpt-6-astra -s read-only \
+  "Review commit range main...$SHA: run git diff main...$SHA. Check correctness, security (auth/RLS/service-role misuse) and the rules in AGENTS.md. List findings by severity with file:line. No style nits. Under 500 words."
 ```
 
 Report the reviewed SHA in the PR. If HEAD moves, review again.
 
-## Visible changes: design review
+## Visible changes: design review, scaled to the change
 
-A PR that changes what visitors or Lea see needs all of these before merge, at the head SHA:
+| Change | Before merge |
+|---|---|
+| Copy, a colour, a spacing tweak | Desktop and 375px screenshots of the spot, shown to V. or L. |
+| A new or reworked page or component | Screenshots of every changed page at both widths, an impeccable `critique` against `.impeccable.md`, and one vision review from another model family (Codex: "the three most important problems a designer would fix", no compliments), then V. or L. sees the screenshots |
+| Launch gate (P1 PR L) | The full procedure across all public pages, with real reviews |
 
-1. **Screenshots** at desktop (1280–1440) and 375px of every page it changes, with real or
-   fixture content. Don't commit them; attach the local paths in the PR.
-2. **An impeccable critique** of those screenshots against `.impeccable.md` (the `impeccable`
-   skill, `critique`).
-3. **A vision review from another model family.** Give Codex the screenshot paths and
-   `.impeccable.md`, and ask for the three most important problems a designer would fix. No
-   compliments, no style-system rewrites. Run it with the same stdin and time-limit rules as
-   above.
-4. **A human look.** V. or L. sees the screenshots before a public-facing change merges.
-
-Fix the real problems, list the rejected ones with a reason, and keep it to one round unless a
-problem is serious. The launch gate (P1 PR L) runs the same procedure across all public pages.
+- Take screenshots at the head SHA, with real or fixture content. Don't commit them: show them
+  in chat or an artifact, and the CI `playwright-report` artifact holds the test evidence.
+- Fix the real problems and list the rejected ones with a reason. One round, unless a problem
+  is serious.
 
 For a quick default review with no custom focus, use `codex review --base main` (or `--uncommitted`).
 

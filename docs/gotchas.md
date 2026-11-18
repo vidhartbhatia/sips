@@ -57,8 +57,9 @@ stops on the first failure). The pre-push hook runs it on every push to `main`.
 - `codex exec` waited on stdin for hours with no CPU use.
 - A `while pgrep -f "codex exec"` wait loop never exited, because its own command line matched.
 
-**Rule:** see `.agents/skills/cross-model-review/SKILL.md`. Pin the head SHA, close stdin, set a
-hard time limit, and wait on the background task, never on `pgrep`.
+**Rule:** run Codex through `scripts/with-timeout.sh` (closes stdin, kills the whole process tree
+on timeout), pin the head SHA, and wait on the background task, never on `pgrep`. Details are in
+`.agents/skills/cross-model-review/SKILL.md`.
 
 ## 2026-11 — What the test setup can't see
 
@@ -71,3 +72,6 @@ hard time limit, and wait on the background task, never on `pgrep`.
   each change to those pages.
 - **Some smoke tests skip until a cafe is published.** They first run for real on L.'s first
   publish, so watch CI on that day.
+- **If production breaks after a merge,** roll back first (`vercel rollback`, or promote the
+  previous deployment in the Vercel dashboard), then fix forward on a branch. A rollback doesn't
+  undo a database migration, so migrations stay additive.

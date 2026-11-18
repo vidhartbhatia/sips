@@ -143,8 +143,8 @@ Full context: `.impeccable.md` and `docs/design-system.md`. Use the impeccable s
 - Verify before claiming done: paste `npm run verify` output or a preview screenshot. Real
   devices and signed-in flows need one real try too (see `docs/gotchas.md`).
 - For non-trivial changes, get a cross-model review at the head SHA (`cross-model-review`).
-  Visible changes also get its design-review steps: screenshots, impeccable critique, a vision
-  review, and a human look before merge.
+  Visible changes get its design review, scaled to the change: always screenshots that V. or L.
+  sees, plus an impeccable critique and a vision review for new or reworked pages.
 - When something goes wrong, add it to `docs/gotchas.md` with the rule that prevents it, and
   prefer a check (test, script, hook) over a sentence. Remove rules that no longer earn their
   place.

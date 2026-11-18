@@ -13,7 +13,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "test:e2e": "playwright test",
     "test": "vitest run",
-    "verify": "next typegen && tsc --noEmit && eslint && vitest run && next build"
+    "verify": "rm -rf .next/types .next/dev/types && next typegen && tsc --noEmit && eslint && vitest run && next build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
