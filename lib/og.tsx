@@ -145,8 +145,9 @@ async function render(element: React.ReactElement, cacheControl: string): Promis
 
 const label = {
   fontFamily: "IBM Plex Mono",
-  fontSize: 18,
-  letterSpacing: 4,
+  // Large for a label: a feed shows the card at about a quarter of this width.
+  fontSize: 23,
+  letterSpacing: 3,
   textTransform: "uppercase",
   color: OG_COLORS.espressoMuted,
 } as const;
@@ -156,7 +157,7 @@ function Masthead({ logo }: { logo: string }) {
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       {/* eslint-disable-next-line @next/next/no-img-element -- satori, not the DOM */}
       <img src={logo} width={52} height={48} alt="" />
-      <span style={label}>Sips · Seattle cafe journal</span>
+      <span style={label}>Sips · Seattle</span>
     </div>
   );
 }
@@ -232,7 +233,7 @@ export async function cafeImage(card: CafeCard): Promise<ImageResponse> {
           <span style={{ fontFamily: "IBM Plex Mono", fontSize: 56, color: OG_COLORS.espresso }}>
             {formatScore(card.score)}
           </span>
-          <span style={{ fontFamily: "IBM Plex Mono", fontSize: 26, color: OG_COLORS.espressoMuted, marginTop: 14 }}>
+          <span style={{ fontFamily: "IBM Plex Mono", fontSize: 32, color: OG_COLORS.espressoMuted, marginTop: 12 }}>
             /5
           </span>
         </div>
@@ -263,12 +264,12 @@ export async function cafeImage(card: CafeCard): Promise<ImageResponse> {
             marginTop: 22,
             fontFamily: "Instrument Serif",
             fontStyle: "italic",
-            fontSize: 34,
-            lineHeight: 1.25,
+            fontSize: 38,
+            lineHeight: 1.22,
             color: OG_COLORS.espresso,
           }}
         >
-          {clip(card.verdict, 120)}
+          {clip(card.verdict, 100)}
         </div>
       )}
     </SplitCard>,
