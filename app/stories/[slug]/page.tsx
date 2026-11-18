@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { formatStoryDate, getPost } from "@/lib/blog";
+import { pageMetadata } from "@/lib/seo";
 
 interface StoryPageProps {
   params: Promise<{ slug: string }>;
@@ -46,7 +47,14 @@ export async function generateMetadata({ params }: StoryPageProps): Promise<Meta
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) return { title: "Story not found" };
-  return { title: post.meta.title, description: post.meta.excerpt };
+  const { title, excerpt, date, author } = post.meta;
+  return pageMetadata({
+    title,
+    description: excerpt,
+    path: `/stories/${slug}`,
+    article: { publishedTime: date, ...(author && { authors: [author] }) },
+    ownImage: true,
+  });
 }
 
 export default async function StoryPage({ params }: StoryPageProps) {

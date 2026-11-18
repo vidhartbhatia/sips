@@ -129,6 +129,17 @@ export async function getVisitSummaries(cafeIds: string[]): Promise<Record<strin
   return summarizeVisits(data);
 }
 
+/**
+ * Slugs for the sitemap: every listed cafe (published, with a published review), read as a
+ * logged-out visitor. Throws on a query error, so a failed read is a 500 the crawler retries,
+ * not a sitemap that silently drops every cafe.
+ */
+export async function getSitemapCafes(): Promise<{ slug: string; updated_at: string }[]> {
+  const { data, error } = await createAnonClient().from("listed_cafes").select("slug, updated_at").order("slug");
+  if (error) throw new Error(`getSitemapCafes: ${error.message}`);
+  return data;
+}
+
 export async function getCafeBySlug(slug: string) {
   const sb = await createClient();
   const { data: cafe, error } = await sb

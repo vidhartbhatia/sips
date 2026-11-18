@@ -4,8 +4,13 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import InkDivider from "@/components/ui/InkDivider";
 import { Illustration } from "@/components/ui/Illustration";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata: Metadata = pageMetadata({
+  title: "About",
+  description: "Who writes Sips, and how we score a cafe from 1 to 5.",
+  path: "/about",
+});
 
 // The scale as it reads on every review. Keep in step with the scoring rules in lib/ratings.ts.
 const SCALE = [
