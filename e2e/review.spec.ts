@@ -106,6 +106,9 @@ test("multi: cafe score counts visits; earlier visits open from the keyboard", a
   await page.keyboard.press("Enter");
   await expect(first).toHaveAttribute("open", "");
   await expect(first.getByText("Flat white", { exact: true })).toBeVisible();
+  // Closed <details> content is never checked above; check it open.
+  await expectA11y(page);
+  await expectNoHorizontalScroll(page);
 });
 
 test("bare: empty sections are left out entirely", async ({ page }) => {

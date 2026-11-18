@@ -38,11 +38,11 @@ export function VisitLead({ view, unoptimizedImages }: VisitLeadProps) {
         data-testid="review-meta"
         className={`font-mono text-xs uppercase tracking-[0.18em] text-espresso-muted ${lead.hero ? "mt-7" : ""}`}
       >
-        {/* Each part stays on one line; a narrow screen wraps between parts, never inside "by Lea". */}
+        {/* The month and "by Lea" stay whole; a long neighbourhood may still wrap inside itself. */}
         {meta.map((part, i) => (
           <span key={i}>
             {i > 0 && " · "}
-            <span className="whitespace-nowrap">{part}</span>
+            <span className={i > 0 ? "whitespace-nowrap" : undefined}>{part}</span>
           </span>
         ))}
       </p>
