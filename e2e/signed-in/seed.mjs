@@ -17,6 +17,8 @@ for (const [table, step] of [
   ["items", (q) => q.delete().neq("id", none)],
   ["reviews", (q) => q.delete().neq("id", none)],
   ["cafes", (q) => q.update({ overall_rating: null, cover_photo_url: null }).neq("id", none)],
+  // Cafes the new-cafe test adds (through the fake place search, and by name only).
+  ["cafes", (q) => q.delete().in("slug", ["e2e-place-cafe", "e2e-manual-cafe"])],
 ]) {
   const { error } = await step(admin.from(table));
   if (error) throw error;

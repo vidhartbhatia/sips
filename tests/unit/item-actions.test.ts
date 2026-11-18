@@ -18,7 +18,10 @@ const drink: DraftItem = { name: "Cortado", category: "drink", type: null, ratin
 
 function seed() {
   client = fakeClient({
-    cafes: [{ id: "cafe-1" }, { id: "cafe-2" }],
+    cafes: [
+      { id: "cafe-1", address: "1 Test St, Seattle, WA", lat: 47.61, lng: -122.32 },
+      { id: "cafe-2", address: "2 Test St, Seattle, WA", lat: 47.62, lng: -122.33 },
+    ],
     reviews: [
       { id: "draft-1", cafe_id: "cafe-1", status: "draft", overall_rating: null, date_visited: "2026-11-01" },
       { id: "pub-1", cafe_id: "cafe-2", status: "published", overall_rating: 4, date_visited: "2026-10-01" },

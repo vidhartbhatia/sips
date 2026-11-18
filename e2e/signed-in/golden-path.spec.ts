@@ -1,8 +1,12 @@
+import os from "node:os";
+import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 // The signed-in golden path against a LOCAL Supabase stack (never production): sign in through
 // the real login page with the emailed code, capture a visit with a photo, publish it, and see
-// it on the public cafe page. Seeded by e2e/signed-in/seed.mjs.
+// it on the public cafe page. Then a new cafe, added through the place search (a server-side
+// fake of Google, lib/google/places.ts, so CI never calls Google), and one added by name only.
+// Seeded by e2e/signed-in/seed.mjs.
 
 const EMAIL = process.env.ALLOWED_EMAILS ?? "e2e-admin@example.com";
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
@@ -25,6 +29,22 @@ async function latestCode(after: number): Promise<string> {
   }
   throw new Error("No sign-in code arrived in Mailpit");
 }
+
+const AUTH = path.join(os.tmpdir(), "sips-e2e-signed-in.json");
+
+// Sign in once per run and share the session: the local stack sends at most two sign-in
+// emails an hour (supabase/config.toml), and a rerun would hit that.
+test.describe.configure({ mode: "serial" });
+test.beforeAll(async ({ browser }, testInfo) => {
+  const page = await browser.newPage({
+    baseURL: testInfo.project.use.baseURL,
+    storageState: { cookies: [], origins: [] }, // signed out, not the file below
+  });
+  await signIn(page);
+  await page.context().storageState({ path: AUTH });
+  await page.close();
+});
+test.use({ storageState: AUTH });
 
 async function signIn(page: Page) {
   await page.goto("/login");
@@ -77,8 +97,6 @@ async function cameraJpeg(page: Page): Promise<Buffer> {
 }
 
 test("capture a visit with a photo, publish it, and read it on the public page", async ({ page }) => {
-  await signIn(page);
-
   await page.goto("/admin/capture");
   await page.locator('input[type="file"][multiple]').setInputFiles({
     name: "IMG_0001.jpg",
@@ -126,4 +144,53 @@ test("capture a visit with a photo, publish it, and read it on the public page",
   const ld = JSON.parse((await anon.locator('script[type="application/ld+json"]').textContent()) ?? "{}");
   expect(ld["@graph"].filter((n: { "@type": string }) => n["@type"] === "Review")).toHaveLength(1);
   await anon.close();
+});
+
+const NO_ADDRESS = "Add the cafe's address before publishing.";
+
+async function scoreAndSave(page: Page, overall: number) {
+  await page.getByRole("radiogroup", { name: "Overall score" }).getByRole("radio", { name: `${overall} out of 5` }).click();
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page).toHaveURL(/\/admin\/review\/[^/]+\/edit/, { timeout: 30_000 });
+}
+
+test("add a new cafe through the place search and publish its first visit", async ({ page }) => {
+  await page.goto("/admin/capture");
+  await page.getByPlaceholder("Search cafes…").fill("E2E Place");
+  await page.getByRole("button", { name: /as a new cafe/ }).click();
+
+  // The Google search starts from what was typed. Picking fills the address and neighbourhood.
+  await expect(page.getByPlaceholder("Find it on Google Maps…")).toHaveValue("E2E Place");
+  await page.getByRole("button", { name: /E2E Place Cafe/ }).click();
+  await expect(page.getByTestId("new-cafe-address")).toHaveText("1000 E Pike St, Seattle, WA 98122, USA");
+  await expect(page.getByLabel("Cafe name")).toHaveValue("E2E Place Cafe");
+  await expect(page.getByLabel("Neighbourhood")).toHaveValue("Capitol Hill");
+
+  await scoreAndSave(page, 4);
+  await expect(page.getByText("This cafe has no address yet")).toHaveCount(0);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByText("Published", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+
+  const anon = await page.context().browser()!.newPage();
+  expect((await anon.goto("/cafes/e2e-place-cafe"))?.status()).toBe(200);
+  await expect(anon.getByText("1000 E Pike St, Seattle, WA 98122, USA")).toBeVisible();
+  await anon.close();
+});
+
+test("a cafe added by name only saves as a draft but can't be published without an address", async ({ page }) => {
+  await page.goto("/admin/capture");
+  await page.getByPlaceholder("Search cafes…").fill("E2E Manual");
+  await page.getByRole("button", { name: /as a new cafe/ }).click();
+  await page.getByRole("button", { name: /Add by name only/ }).click();
+  await page.getByLabel("Cafe name").fill("E2E Manual Cafe");
+  await page.getByLabel("Neighbourhood").selectOption("Ballard");
+
+  await scoreAndSave(page, 3);
+  await expect(page.getByText("This cafe has no address yet")).toBeVisible();
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: NO_ADDRESS })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("link", { name: "Add the address" })).toHaveAttribute(
+    "href",
+    "/admin/cafes/e2e-manual-cafe/edit",
+  );
 });

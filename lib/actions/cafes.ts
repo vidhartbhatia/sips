@@ -6,6 +6,15 @@ import { requireAuth } from "@/lib/auth";
 import { syncCoverPhoto } from "@/lib/cover-photo";
 import { toStoragePath } from "@/lib/storage";
 import { geocodeAddress } from "@/lib/google/geocode";
+import {
+  autocompletePlaces,
+  isPlaceId,
+  isSessionToken,
+  placeDetails,
+  type PlaceDetails,
+  type PlaceSuggestion,
+  type PlacesResult,
+} from "@/lib/google/places";
 
 function slugify(name: string): string {
   return name
@@ -14,13 +23,31 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+const isLat = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 90;
+const isLng = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 180;
+
+/**
+ * Create a cafe. From the capture form's place search it arrives with Google's address,
+ * coordinates and place ID, so nothing is geocoded; added by name only, it has no address
+ * yet and can't be published until one is set on /admin/cafes/<slug>/edit.
+ */
 export async function createCafe(data: {
   name: string;
   address?: string;
   neighborhood: string;
   vibe_tags?: string[];
+  lat?: number;
+  lng?: number;
+  google_place_id?: string;
 }) {
   await requireAuth();
+  if (data.google_place_id !== undefined && !isPlaceId(data.google_place_id)) {
+    return { error: "That Google place ID doesn't look right.", cafe: null };
+  }
+  const hasCoords = data.lat !== undefined || data.lng !== undefined;
+  if (hasCoords && !(isLat(data.lat) && isLng(data.lng))) {
+    return { error: "Those coordinates don't look right.", cafe: null };
+  }
   const supabase = createAdminClient();
   const slug = slugify(data.name);
 
@@ -35,8 +62,13 @@ export async function createCafe(data: {
     return { error: "A cafe with this name already exists", cafe: null };
   }
 
-  // Geocode if address provided
-  const coords = data.address ? await geocodeAddress(data.address) : null;
+  // Coordinates from the place search win; otherwise geocode the address, if there is one.
+  const coords =
+    isLat(data.lat) && isLng(data.lng)
+      ? { lat: data.lat, lng: data.lng }
+      : data.address
+        ? await geocodeAddress(data.address)
+        : null;
 
   const { data: cafe, error } = await supabase
     .from("cafes")
@@ -48,6 +80,7 @@ export async function createCafe(data: {
       lat: coords?.lat ?? 0,
       lng: coords?.lng ?? 0,
       vibe_tags: data.vibe_tags ?? [],
+      google_place_id: data.google_place_id ?? null,
       // No reviews yet: no score (null, never 0).
       overall_rating: null,
       status: "published",
@@ -115,4 +148,25 @@ export async function searchCafes(query: string) {
 
   if (error) return [];
   return data ?? [];
+}
+
+/** Google place suggestions for the capture form's "new cafe" search. Signed-in only. */
+export async function searchPlaces(input: string, sessionToken: string): Promise<PlacesResult<PlaceSuggestion[]>> {
+  await requireAuth();
+  const text = typeof input === "string" ? input.trim() : "";
+  if (text.length < 2 || text.length > 100) return { ok: true, data: [] };
+  if (typeof sessionToken !== "string" || !isSessionToken(sessionToken)) {
+    return { ok: false, error: "Bad search session." };
+  }
+  return autocompletePlaces(text, sessionToken);
+}
+
+/** The picked place's name, address, coordinates and suggested neighbourhood. Signed-in only. */
+export async function getPlace(placeId: string, sessionToken: string): Promise<PlacesResult<PlaceDetails>> {
+  await requireAuth();
+  if (typeof placeId !== "string" || !isPlaceId(placeId)) return { ok: false, error: "Unknown place." };
+  if (typeof sessionToken !== "string" || !isSessionToken(sessionToken)) {
+    return { ok: false, error: "Bad search session." };
+  }
+  return placeDetails(placeId, sessionToken);
 }

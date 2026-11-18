@@ -8,7 +8,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => client }));
 vi.mock("@/lib/cover-photo", () => ({ syncCoverPhoto: vi.fn(async () => {}) }));
 vi.mock("@/lib/ratings", () => ({ recalculateCafeRating: vi.fn(async () => {}) }));
 
-const { createReviewDraft } = await import("@/lib/actions/reviews");
+const { createReviewDraft, publishReview, updateReview } = await import("@/lib/actions/reviews");
 
 const input = {
   id: "7d0f6f4e-6a52-4c2a-9a63-0f8a1c2b3d4e",
@@ -74,5 +74,39 @@ describe("createReviewDraft", () => {
   it("rejects an unknown cafe", async () => {
     const result = await createReviewDraft({ ...input, cafe_id: "nope" });
     expect(result.error).toMatch(/cafe/i);
+  });
+});
+
+describe("publishing and the cafe's address", () => {
+  const located = { id: "cafe-1", address: "1 Test St, Seattle, WA", lat: 47.61, lng: -122.32 };
+  const bare = { id: "cafe-2", address: "", lat: 0, lng: 0 };
+  const review = (id: string, cafe_id: string, status: "draft" | "published") => ({
+    id,
+    cafe_id,
+    status,
+    overall_rating: 4,
+  });
+
+  beforeEach(() => {
+    client = fakeClient({
+      cafes: [located, bare],
+      reviews: [review("r-ok", "cafe-1", "draft"), review("r-bare", "cafe-2", "draft"), review("r-live", "cafe-2", "published")],
+      items: [],
+      photos: [],
+    });
+  });
+
+  it("publishes a draft whose cafe has an address", async () => {
+    expect(await publishReview("r-ok")).toEqual({ error: null });
+    expect(client.tables.reviews.find((r) => r.id === "r-ok")?.status).toBe("published");
+  });
+
+  it("refuses a draft whose cafe has no address", async () => {
+    expect(await publishReview("r-bare")).toEqual({ error: "Add the cafe's address before publishing." });
+    expect(client.tables.reviews.find((r) => r.id === "r-bare")?.status).toBe("draft");
+  });
+
+  it("still lets an already-published review of an address-less cafe be edited", async () => {
+    expect(await updateReview("r-live", { verdict: "Typo fixed" })).toEqual({ error: null });
   });
 });

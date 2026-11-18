@@ -22,7 +22,8 @@ export interface ReviewEditFormProps {
     note: string | null;
     date_visited: string;
     cover_photo_id: string | null;
-    cafe: { name: string; neighborhood: string } | null;
+    /** `hasLocation`: an address and coordinates, which publishing needs. */
+    cafe: { name: string; slug: string; neighborhood: string; hasLocation: boolean } | null;
     /** Oldest first. */
     items: SavedItem[];
     /** Oldest first, with signed URLs. */
@@ -218,6 +219,17 @@ export default function ReviewEditForm({ review }: ReviewEditFormProps) {
       {review.cafe?.neighborhood && (
         <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
           {review.cafe.neighborhood}
+        </p>
+      )}
+      {review.cafe && !review.cafe.hasLocation && (
+        <p className="mt-3 text-sm text-espresso">
+          This cafe has no address yet, so the review can&rsquo;t be published.{" "}
+          <Link
+            href={`/admin/cafes/${review.cafe.slug}/edit`}
+            className="text-terracotta-dark underline underline-offset-4"
+          >
+            Add the address
+          </Link>
         </p>
       )}
 

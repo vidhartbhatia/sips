@@ -7,12 +7,8 @@ import Image from "next/image";
 import SipsRating from "@/components/ui/SipsRating";
 import { updateCafe } from "@/lib/actions/cafes";
 import { deleteCafe } from "@/lib/actions/admin";
+import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 
-const NEIGHBORHOODS = [
-  "Capitol Hill", "Fremont", "Ballard", "Pike Place", "Pioneer Square",
-  "University District", "Wallingford", "Queen Anne", "Georgetown",
-  "Columbia City", "Beacon Hill", "Other",
-];
 
 const VIBE_TAGS = [
   "cozy", "modern", "spacious", "bright", "dark", "loud", "quiet",

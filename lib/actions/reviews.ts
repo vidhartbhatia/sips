@@ -154,20 +154,26 @@ async function existingDraft(
   return { error: null, reviewId, itemIds };
 }
 
-/** Load a review's score and its items' scores, then run the publish rules. */
+/**
+ * Load a review's score and its items' scores, then run the publish rules. With `cafeId`
+ * (a draft going live) the cafe must also have an address and coordinates.
+ */
 async function checkPublishable(
   supabase: ReturnType<typeof createAdminClient>,
   reviewId: string,
-  overrideOverall?: number | null,
+  overrideOverall: number | null | undefined,
+  cafeId: string | null,
 ): Promise<string | null> {
-  const [reviewRes, itemsRes] = await Promise.all([
+  const [reviewRes, itemsRes, cafeRes] = await Promise.all([
     supabase.from("reviews").select("overall_rating").eq("id", reviewId).single(),
     supabase.from("items").select("name, rating").eq("review_id", reviewId),
+    cafeId ? supabase.from("cafes").select("address, lat, lng").eq("id", cafeId).single() : null,
   ]);
   if (reviewRes.error || !reviewRes.data) return reviewRes.error?.message ?? "Review not found.";
   if (itemsRes.error) return itemsRes.error.message;
+  if (cafeRes && (cafeRes.error || !cafeRes.data)) return cafeRes.error?.message ?? "Cafe not found.";
   const overall = overrideOverall === undefined ? reviewRes.data.overall_rating : overrideOverall;
-  const check = canPublish({ overall_rating: overall }, itemsRes.data ?? []);
+  const check = canPublish({ overall_rating: overall }, itemsRes.data ?? [], cafeRes?.data ?? undefined);
   return check.ok ? null : check.reason;
 }
 
@@ -195,7 +201,8 @@ export async function updateReview(
   }
 
   // Every path to "published" runs the publish rules (an edit can also change the score
-  // of an already published review, which must stay scored).
+  // of an already published review, which must stay scored). The cafe-address rule applies
+  // only to a draft going live, so a legacy address-less cafe never blocks fixing a live review.
   const { data: existing, error: readError } = await supabase
     .from("reviews")
     .select("cafe_id, status")
@@ -203,7 +210,8 @@ export async function updateReview(
     .single();
   if (readError || !existing) return { error: readError?.message ?? "Review not found." };
   if ((status ?? existing.status) === "published") {
-    const reason = await checkPublishable(supabase, reviewId, overall_rating);
+    const goingLive = existing.status !== "published";
+    const reason = await checkPublishable(supabase, reviewId, overall_rating, goingLive ? existing.cafe_id : null);
     if (reason) return { error: reason };
   }
 

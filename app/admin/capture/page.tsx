@@ -98,7 +98,13 @@ export default function CapturePage() {
         cafeId = cafe.id;
       } else {
         setProgress("Adding the cafe…");
-        const created = await createCafe({ name: cafe.name.trim(), neighborhood: cafe.neighborhood });
+        const { place } = cafe;
+        const created = await createCafe({
+          name: cafe.name.trim(),
+          neighborhood: cafe.neighborhood,
+          // From the place search; a cafe added by name only gets its address later.
+          ...(place && { address: place.address, lat: place.lat, lng: place.lng, google_place_id: place.placeId }),
+        });
         if (created.error || !created.cafe) throw new Error(created.error ?? "Couldn't add the cafe.");
         cafeId = created.cafe.id;
         // If anything below fails, a retry reuses this cafe instead of creating it twice.
