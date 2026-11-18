@@ -72,7 +72,8 @@ export default async function RootLayout({
 
       >
         <NavProvider hasStories={hasStories}>{children}</NavProvider>
-        <SiteAnalytics />
+        {/* The tracking script only exists on Vercel; elsewhere (CI, local) it would 404. */}
+        {process.env.VERCEL === "1" && <SiteAnalytics />}
       </body>
     </html>
   );
