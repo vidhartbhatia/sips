@@ -9,6 +9,7 @@ import {
   toStoragePath,
   type SignedUrls,
 } from "@/lib/storage";
+import { summarizeVisits, type VisitSummary } from "@/lib/listing";
 
 /**
  * A sessionless anon client: exactly what a logged-out visitor's RLS allows. The cookie
@@ -102,6 +103,29 @@ export async function getCafes(opts?: { limit?: number }) {
   const [{ data, error }, coverUrls] = await Promise.all([query, getPublicCoverUrls()]);
   if (error) throw error;
   return (data ?? []).map((c) => withCover(c, coverUrls));
+}
+
+/**
+ * For the cafe cards: each listed cafe's latest published verdict and visit date, and its
+ * published visit count. Sessionless anon client plus an explicit published filter, so an
+ * admin's session never leaks a draft verdict onto a public card.
+ *
+ * On a query error it logs and returns `{}`: the cards still render (name, cover, score),
+ * just without verdicts or visit counts, rather than taking the whole page down.
+ */
+export async function getVisitSummaries(cafeIds: string[]): Promise<Record<string, VisitSummary>> {
+  if (cafeIds.length === 0) return {};
+  const anon = createAnonClient();
+  const { data, error } = await anon
+    .from("reviews")
+    .select("cafe_id, verdict, date_visited, created_at")
+    .in("cafe_id", cafeIds)
+    .eq("status", "published");
+  if (error) {
+    console.error("getVisitSummaries: reviews query failed", error);
+    return {};
+  }
+  return summarizeVisits(data);
 }
 
 export async function getCafeBySlug(slug: string) {

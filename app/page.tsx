@@ -1,19 +1,17 @@
-import { getCafes } from "@/lib/supabase/queries";
-import HomeContent from "@/components/home/HomeContent";
+// design-rules: enforced
+import { HomeView } from "@/components/home/HomeView";
+import { getCafes, getVisitSummaries } from "@/lib/supabase/queries";
+import { byLatestVisit } from "@/lib/listing";
 
 export const dynamic = "force-dynamic";
 
+const RECENT = 6;
+
 export default async function Home() {
-  const cafes = await getCafes({ limit: 6 });
+  // Every listed cafe (dozens at most for now), so "recent" means latest visit, not top score.
+  const cafes = await getCafes();
+  const summaries = await getVisitSummaries(cafes.map((c) => c.id));
+  const recent = [...cafes].sort(byLatestVisit(summaries)).slice(0, RECENT);
 
-  const mapped = cafes.map((c: Record<string, unknown>) => ({
-    name: c.name as string,
-    slug: c.slug as string,
-    neighborhood: c.neighborhood as string,
-    overall_rating: c.overall_rating as number | null,
-    vibe_tags: (c.vibe_tags ?? []) as string[],
-    cover_photo_url: c.cover_photo_url as string | null,
-  }));
-
-  return <HomeContent cafes={mapped} />;
+  return <HomeView cafes={recent} summaries={summaries} />;
 }
