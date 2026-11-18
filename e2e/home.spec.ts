@@ -65,12 +65,20 @@ test.describe("home fixtures", () => {
     await expect(page.getByRole("img", { name: "Score 4.5 out of 5, 2 visits" })).toBeVisible();
   });
 
-  test("six: six cards, the coverless one has no image or placeholder", async ({ page }) => {
+  test("six: six cards, the coverless one gets a doodle panel the size of a photo", async ({ page }) => {
     await page.goto("/fixtures/home/six");
     await expect(cardLinks(page)).toHaveCount(6);
     const coverless = cardLinks(page).filter({ hasText: "Sample Matcha House" });
-    await expect(coverless.locator("img")).toHaveCount(0);
-    await expect(coverless.locator("svg")).toHaveCount(0);
+    // One decorative doodle (the matcha one, from the name), hidden from assistive tech.
+    const doodle = coverless.locator("img");
+    await expect(doodle).toHaveCount(1);
+    await expect(doodle).toHaveAttribute("aria-hidden", "true");
+    await expect(doodle).toHaveAttribute("src", /\/doodles\/matcha\.svg/);
+    // Its panel is exactly as tall as a photo cover, so the grid rows line up.
+    const withPhoto = cardLinks(page).filter({ hasText: "Fixture Roasters" });
+    const panel = await coverless.getByTestId("card-cover").boundingBox();
+    const photo = await withPhoto.getByTestId("card-cover").boundingBox();
+    expect(panel && photo && Math.abs(panel.height - photo.height)).toBeLessThanOrEqual(1);
     await expect(page.getByRole("link", { name: /see all cafes/i })).toHaveAttribute("href", "/cafes");
   });
 });

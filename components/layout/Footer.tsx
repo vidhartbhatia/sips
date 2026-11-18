@@ -1,5 +1,4 @@
 // design-rules: enforced
-import Link from "next/link";
 import { Illustration } from "@/components/ui/Illustration";
 import FooterNav from "@/components/layout/FooterNav";
 
@@ -9,7 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-8 md:grid-cols-3">
           {/* Brand */}
-          <div>
+          <div className="md:col-span-2">
             <div className="flex items-center gap-2">
               <Illustration slot="logo" className="h-[22px] w-auto" />
               <h3 className="font-heading text-2xl text-espresso">Sips</h3>
@@ -28,21 +27,6 @@ export default function Footer() {
               Explore
             </h4>
             <FooterNav />
-          </div>
-
-          {/* Info */}
-          <div>
-            <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
-              About
-            </h4>
-            <nav className="mt-3 flex flex-col gap-2">
-              <Link
-                href="/about"
-                className="text-sm text-espresso-muted transition-colors hover:text-terracotta-dark"
-              >
-                About Us
-              </Link>
-            </nav>
           </div>
         </div>
 
