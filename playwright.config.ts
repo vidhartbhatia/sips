@@ -15,6 +15,8 @@ const isCI = !!process.env.CI;
  */
 export default defineConfig({
   testDir: "./e2e",
+  // Signed-in flows run only against a local Supabase stack (playwright.signed-in.config.ts).
+  testIgnore: "**/signed-in/**",
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
