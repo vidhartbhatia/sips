@@ -141,6 +141,33 @@ describe("cafeJsonLd", () => {
     expect(review.author).toEqual({ "@type": "Organization", name: "Sips", url: "https://oursips.com" });
   });
 
+  it("never places a cafe at 0,0: no geo or address for an un-geocoded cafe", () => {
+    // What the capture form's "New cafe" creates: empty address, lat = lng = 0.
+    const input = structuredClone(cases.single);
+    input.cafe.address = "";
+    const built = buildReviewPage(input);
+    if (!built) throw new Error("no view");
+    const [review] = ofType(cafeJsonLd(built, { lat: 0, lng: 0 }), "Review");
+    expect(review.itemReviewed).not.toHaveProperty("geo");
+    expect(review.itemReviewed).not.toHaveProperty("address");
+    expect(serializeJsonLd(cafeJsonLd(built, { lat: 0, lng: 0 }))).not.toContain("GeoCoordinates");
+  });
+
+  it("drops 0,0 coordinates even when an address is set, and blank-only addresses", () => {
+    const [atZero] = ofType(cafeJsonLd(view("single"), { lat: 0, lng: 0 }), "Review");
+    expect(atZero.itemReviewed).not.toHaveProperty("geo");
+    expect(atZero.itemReviewed).toHaveProperty("address", "1200 E Pike St, Seattle, WA 98122");
+
+    const input = structuredClone(cases.single);
+    input.cafe.address = "   ";
+    const built = buildReviewPage(input);
+    if (!built) throw new Error("no view");
+    const [blank] = ofType(cafeJsonLd(built, FIXTURE_GEO), "Review");
+    expect(blank.itemReviewed).not.toHaveProperty("address");
+    // Coordinates without an address are the same un-geocoded case: left out too.
+    expect(blank.itemReviewed).not.toHaveProperty("geo");
+  });
+
   it("omits the rating of an unscored visit rather than inventing one", () => {
     const input = structuredClone(cases.bare);
     input.reviews[0].overall_rating = null;

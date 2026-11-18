@@ -185,17 +185,32 @@ export function siteJsonLd(): JsonLdNode {
  */
 export function cafeJsonLd(view: ReviewPageView, geo: { lat: number; lng: number } | null): JsonLdNode {
   const url = absoluteUrl(`/cafes/${view.cafe.slug}`);
+  const address = view.cafe.address.trim();
   const cafe: JsonLdNode = {
     "@type": "CafeOrCoffeeShop",
     name: view.cafe.name,
     url,
-    ...(view.cafe.address && { address: view.cafe.address }),
-    ...(geo && { geo: { "@type": "GeoCoordinates", latitude: geo.lat, longitude: geo.lng } }),
+    ...(address && { address }),
+    ...(isPlaced(geo, address) && { geo: { "@type": "GeoCoordinates", latitude: geo.lat, longitude: geo.lng } }),
   };
   const reviews = [view.lead, ...view.earlier]
     .filter((v) => v.status === "published")
     .map((v) => reviewNode(v, cafe, url));
   return { "@context": "https://schema.org", "@graph": [...reviews, website, organization] };
+}
+
+/**
+ * Whether a cafe has real coordinates. A cafe made from the capture form's "New cafe" has no
+ * address and lat = lng = 0 (it is only geocoded from an address), and must never be
+ * published as sitting at 0,0 in the Gulf of Guinea.
+ */
+function isPlaced(
+  geo: { lat: number; lng: number } | null,
+  address: string,
+): geo is { lat: number; lng: number } {
+  if (!geo || !address) return false;
+  if (!Number.isFinite(geo.lat) || !Number.isFinite(geo.lng)) return false;
+  return !(geo.lat === 0 && geo.lng === 0);
 }
 
 function reviewNode(visit: VisitView, cafe: JsonLdNode, url: string): JsonLdNode {
