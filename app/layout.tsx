@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import { connection } from "next/server";
 import { NavProvider } from "@/components/layout/NavContext";
+import { SiteAnalytics } from "@/components/layout/SiteAnalytics";
 import { listPublishedStories } from "@/lib/blog";
 import "./globals.css";
 
@@ -71,6 +72,7 @@ export default async function RootLayout({
 
       >
         <NavProvider hasStories={hasStories}>{children}</NavProvider>
+        <SiteAnalytics />
       </body>
     </html>
   );
