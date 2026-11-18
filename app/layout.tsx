@@ -6,6 +6,8 @@ import {
   IBM_Plex_Mono,
 } from "next/font/google";
 import { connection } from "next/server";
+import { NavProvider } from "@/components/layout/NavContext";
+import { listPublishedStories } from "@/lib/blog";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -40,13 +42,11 @@ export const metadata: Metadata = {
     default: "Sips — A Seattle Cafe Journal",
     template: "%s | Sips",
   },
-  description:
-    "Two coffee lovers exploring Seattle, one cup at a time. Reviews, ratings, and recommendations for the city's best cafes.",
-  keywords: ["seattle", "cafes", "coffee", "reviews", "cafe guide"],
+  description: "A Seattle cafe journal: coffee and matcha, by Lea and Vids.",
+  keywords: ["seattle", "cafes", "coffee", "matcha", "cafe reviews", "cafe journal"],
   openGraph: {
     title: "Sips — A Seattle Cafe Journal",
-    description:
-      "Two coffee lovers exploring Seattle, one cup at a time.",
+    description: "A Seattle cafe journal: coffee and matcha, by Lea and Vids.",
     url: "https://oursips.com",
     siteName: "Sips",
     locale: "en_US",
@@ -63,13 +63,14 @@ export default async function RootLayout({
   // nonce onto its scripts when a page renders per request, so opt every route out of
   // static prerendering — otherwise the browser blocks hydration on static pages.
   await connection();
+  const hasStories = (await listPublishedStories()).length > 0;
   return (
     <html lang="en">
       <body
         className={`${instrumentSerif.variable} ${plusJakarta.variable} ${caveat.variable} ${ibmPlexMono.variable} font-body antialiased`}
 
       >
-        {children}
+        <NavProvider hasStories={hasStories}>{children}</NavProvider>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { attachScreenshot, expectA11y, expectNoHorizontalScroll, trackErrors } from "./helpers";
 
 /**
@@ -82,5 +82,63 @@ test.describe("/blog redirects", () => {
     expect(first.status()).toBe(308);
     const res = await request.get("/blog/some-story");
     expect(new URL(res.url()).pathname).toBe("/stories/some-story");
+  });
+});
+
+/** Taps the menu toggle until it opens: a tap that lands before hydration does nothing. */
+async function openMenu(page: Page): Promise<void> {
+  const toggle = page.getByRole("banner").getByRole("button", { name: "Menu" });
+  await expect(async () => {
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.tap();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1_000 });
+  }).toPass();
+}
+
+test.describe("navigation", () => {
+  for (const url of ["/", "/about"]) {
+    test(`${url}: Stories is linked only once a story is published`, async ({ page, isMobile }) => {
+      // Derived from content, so this stays right the day the first story publishes. The
+      // positive case is also pinned by the publicNav(true) unit test.
+      const { published } = await postsByState();
+      const expected = published.length > 0 ? 1 : 0;
+
+      await page.goto(url);
+      // On the 375px project the header links sit in the menu.
+      if (isMobile) await openMenu(page);
+      const header = page.getByRole("banner");
+      const footer = page.getByRole("contentinfo");
+
+      // getByRole skips hidden elements, so each region counts only the nav a visitor sees.
+      await expect(header.getByRole("link", { name: "Stories", exact: true })).toHaveCount(expected);
+      await expect(footer.getByRole("link", { name: "Stories", exact: true })).toHaveCount(expected);
+      await expect(header.getByRole("link", { name: "Cafes", exact: true })).toHaveCount(1);
+      await expect(footer.getByRole("link", { name: "Cafes", exact: true })).toHaveCount(1);
+      if (expected) await expect(header.locator('a[href="/stories"]:visible')).toHaveCount(1);
+
+      for (const region of [header, footer]) {
+        await expect(region.locator('a[href="/map"], a[href="/want-to-go"]')).toHaveCount(0);
+        await expect(region.getByRole("link", { name: /^(map|want to go|wish list)$/i })).toHaveCount(0);
+      }
+    });
+  }
+
+  test("the mobile menu opens, closes on Escape and returns focus", async ({ page, isMobile }, testInfo) => {
+    test.skip(!isMobile, "the menu toggle only shows below the md breakpoint");
+    await page.goto("/");
+    const toggle = page.getByRole("banner").getByRole("button", { name: "Menu" });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const menuId = await toggle.getAttribute("aria-controls");
+    expect(menuId).toBeTruthy();
+
+    await openMenu(page);
+    const menu = page.locator(`#${menuId}`);
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Cafes", exact: true })).toBeVisible();
+    await attachScreenshot(page, testInfo, "mobile-menu-open");
+
+    await page.keyboard.press("Escape");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toHaveCount(0);
+    await expect(toggle).toBeFocused();
   });
 });

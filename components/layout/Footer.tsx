@@ -1,5 +1,7 @@
+// design-rules: enforced
 import Link from "next/link";
-import Image from "next/image";
+import { Illustration } from "@/components/ui/Illustration";
+import FooterNav from "@/components/layout/FooterNav";
 
 export default function Footer() {
   return (
@@ -9,20 +11,14 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <Image
-                src="/illustrations/coffee-cup.svg"
-                alt=""
-                width={22}
-                height={22}
-                className="opacity-50"
-              />
+              <Illustration slot="logo" className="h-[22px] w-[22px] opacity-50" />
               <h3 className="font-heading text-2xl text-espresso">Sips</h3>
             </div>
             <p className="mt-2 font-display text-lg italic text-espresso-muted">
               a seattle cafe journal
             </p>
             <p className="mt-4 text-sm text-espresso-muted">
-              Two coffee lovers exploring Seattle, one cup at a time.
+              Two friends, coffee and matcha, Seattle.
             </p>
           </div>
 
@@ -31,20 +27,7 @@ export default function Footer() {
             <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-espresso-muted">
               Explore
             </h4>
-            <nav className="mt-3 flex flex-col gap-2">
-              {[
-                { href: "/cafes", label: "Cafes" },
-                { href: "/about", label: "About" },
-              ].map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm text-espresso-muted transition-colors hover:text-terracotta"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            <FooterNav />
           </div>
 
           {/* Info */}
@@ -55,7 +38,7 @@ export default function Footer() {
             <nav className="mt-3 flex flex-col gap-2">
               <Link
                 href="/about"
-                className="text-sm text-espresso-muted transition-colors hover:text-terracotta"
+                className="text-sm text-espresso-muted transition-colors hover:text-terracotta-dark"
               >
                 About Us
               </Link>
