@@ -8,6 +8,7 @@ import {
 import { connection } from "next/server";
 import { NavProvider } from "@/components/layout/NavContext";
 import { listPublishedStories } from "@/lib/blog";
+import { siteMetadata } from "@/lib/seo";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -36,23 +37,7 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://oursips.com"),
-  title: {
-    default: "Sips — A Seattle Cafe Journal",
-    template: "%s | Sips",
-  },
-  description: "A Seattle cafe journal: coffee and matcha, by Lea and Vids.",
-  keywords: ["seattle", "cafes", "coffee", "matcha", "cafe reviews", "cafe journal"],
-  openGraph: {
-    title: "Sips — A Seattle Cafe Journal",
-    description: "A Seattle cafe journal: coffee and matcha, by Lea and Vids.",
-    url: "https://oursips.com",
-    siteName: "Sips",
-    locale: "en_US",
-    type: "website",
-  },
-};
+export const metadata: Metadata = siteMetadata;
 
 export default async function RootLayout({
   children,

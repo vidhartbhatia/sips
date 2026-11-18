@@ -78,3 +78,14 @@ on timeout), pin the head SHA, and wait on the background task, never on `pgrep`
 - **If production breaks after a merge,** roll back first (`vercel rollback`, or promote the
   previous deployment in the Vercel dashboard), then fix forward on a branch. A rollback doesn't
   undo a database migration, so migrations stay additive.
+
+## 2026-11 — Share images: shallow metadata merges and WebP in `next/og`
+
+Two traps hit while adding share previews, both silent:
+
+- A page that sets its own `openGraph`, `twitter` or `alternates` *replaces* the layout's object.
+  `/about` lost its `og:image` (inherited from `app/opengraph-image.tsx`) and the RSS link.
+  **Rule:** build page metadata with `pageMetadata()` in `lib/seo.ts`, which re-sends the site
+  card and the feed link; `e2e/seo.spec.ts` checks every public page's served `<head>`.
+- Satori (inside `next/og`) draws a WebP as nothing, with no error. **Rule:** images go through
+  `rasterize()` in `lib/og.tsx` (sharp → JPEG on cream) before they reach a card.

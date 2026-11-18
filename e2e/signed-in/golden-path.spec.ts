@@ -36,6 +36,29 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/admin$/);
 }
 
+/** Cafe slugs in the sitemap, as an anonymous visitor's crawler sees it. */
+async function sitemapCafes(page: Page): Promise<string[]> {
+  const xml = await (await page.request.get("/sitemap.xml")).text();
+  return [...xml.matchAll(/<loc>[^<]*\/cafes\/([^<]+)<\/loc>/g)].map((m) => m[1]);
+}
+
+/**
+ * Whether the share card carries the photo rather than the watercolour fallback. The photo is a
+ * sage-to-terracotta gradient whose top-left is green-dominant; the watercolour's corner fades
+ * to cream paper, which is red-dominant.
+ */
+async function sharePhotoFetched(page: Page, slug: string): Promise<boolean> {
+  return page.evaluate(async (path) => {
+    const res = await fetch(path);
+    const bitmap = await createImageBitmap(await res.blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(bitmap, 0, 0);
+    const [r, g, b] = ctx.getImageData(20, 20, 1, 1).data;
+    return g > r && g > b;
+  }, `/cafes/${slug}/opengraph-image`);
+}
+
 /** A phone-sized JPEG made in the browser, so no image file is committed. */
 async function cameraJpeg(page: Page): Promise<Buffer> {
   const dataUrl = await page.evaluate(() => {
@@ -73,9 +96,11 @@ test("capture a visit with a photo, publish it, and read it on the public page",
 
   await expect(page).toHaveURL(/\/admin\/review\/[^/]+\/edit/, { timeout: 30_000 });
 
-  // A draft never shows publicly.
+  // A draft never shows publicly: no page, no share image, not in the sitemap.
   const anon = await page.context().browser()!.newPage();
   expect((await anon.goto(`/cafes/${SLUG}`))?.status()).toBe(404);
+  expect((await anon.request.get(`/cafes/${SLUG}/opengraph-image`)).status()).toBe(404);
+  expect(await sitemapCafes(anon)).not.toContain(SLUG);
 
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByText("Published", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
@@ -87,5 +112,18 @@ test("capture a visit with a photo, publish it, and read it on the public page",
   const hero = anon.locator("main img").first();
   await expect(hero).toBeVisible();
   expect(await hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+
+  // Published: listed in the sitemap, and the share card is drawn from the signed photo.
+  expect(await sitemapCafes(anon)).toContain(SLUG);
+  const ogUrl = new URL((await anon.locator('meta[property="og:image"]').getAttribute("content")) ?? "");
+  expect(ogUrl.pathname).toBe(`/cafes/${SLUG}/opengraph-image`);
+  const og = await anon.request.get(`${ogUrl.pathname}${ogUrl.search}`);
+  expect(og.status()).toBe(200);
+  expect(og.headers()["content-type"]).toBe("image/png");
+  // The card embeds the photo's pixels; the signed (or any storage) URL never reaches it.
+  expect((await og.body()).includes(Buffer.from("/storage/v1/object"))).toBe(false);
+  expect(await sharePhotoFetched(anon, SLUG)).toBe(true);
+  const ld = JSON.parse((await anon.locator('script[type="application/ld+json"]').textContent()) ?? "{}");
+  expect(ld["@graph"].filter((n: { "@type": string }) => n["@type"] === "Review")).toHaveLength(1);
   await anon.close();
 });

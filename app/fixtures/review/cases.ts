@@ -2,7 +2,7 @@
 // e2e/review.spec.ts. Fictional cafe and text; photos are inline SVG rectangles, so no image
 // files are committed and nothing is fetched.
 
-import { toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
+import { buildReviewPage, toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
 import type { Item, Photo, Review, ReviewAuthor } from "@/lib/supabase/types";
 
 type Visit = Review & { author: ReviewAuthor | null };
@@ -231,3 +231,14 @@ export const cases: Record<string, ReviewPageInput> = { single, multi, bare, lon
 
 /** Cases rendered as the admin preview (lead visit and banner) rather than the public page. */
 export const previewLeads: Record<string, string> = { draft: draft.leadVisitId };
+
+/** Where the made-up cafe would be (Capitol Hill), for the cafe JSON-LD's geo. */
+export const FIXTURE_GEO = { lat: 47.6145, lng: -122.3205 };
+
+/** A fixture case as the page and its share image render it, or null for an unknown case. */
+export function loadFixture(name: string) {
+  const input = Object.hasOwn(cases, name) ? cases[name] : null;
+  const leadVisitId = Object.hasOwn(previewLeads, name) ? previewLeads[name] : undefined;
+  const view = input ? buildReviewPage(input, { leadVisitId }) : null;
+  return input && view ? { input, view, leadVisitId } : null;
+}

@@ -5,8 +5,13 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Illustration } from "@/components/ui/Illustration";
 import { formatStoryDate, listPublishedStories } from "@/lib/blog";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Stories" };
+export const metadata: Metadata = pageMetadata({
+  title: "Stories",
+  description: "Notes from the cafe trail: stories from Sips, a Seattle cafe journal.",
+  path: "/stories",
+});
 
 export default async function StoriesPage() {
   const posts = await listPublishedStories();
