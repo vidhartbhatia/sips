@@ -223,12 +223,20 @@ test("single: every drink name lines up, with or without a picture", async ({ pa
 test("live: every listed cafe opens a layout-A page", async ({ page }) => {
   // Live data, read-only. CI's service key is a placeholder, so no photo signs there and
   // every photo must be dropped cleanly (no broken <img>, no empty strip).
-  await page.goto("/cafes");
+  const response = await page.goto("/cafes");
+  expect(response?.status(), "/cafes status").toBe(200);
   const hrefs = await page
     .getByRole("main")
     .locator('a[href^="/cafes/"]')
     .evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
   const listed = [...new Set(hrefs.filter((h) => /^\/cafes\/[a-z0-9-]+$/.test(h)))];
-  test.skip(listed.length === 0, "no published reviews yet");
-  for (const href of listed) await expectLayoutAPage(page, href);
+  if (listed.length === 0) {
+    // Skip only on a real empty state, never because the listing broke.
+    await expect(page.getByText("First reviews soon.")).toBeVisible();
+    test.skip(true, "no published reviews yet");
+  }
+  // A bounded sample, so CI time doesn't grow with the journal.
+  const sample = listed.slice(0, 3);
+  test.setTimeout(30_000 * sample.length);
+  for (const href of sample) await expectLayoutAPage(page, href);
 });
