@@ -2,6 +2,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./admin";
 import { createClient } from "./server";
 import type { Database } from "./types";
+import { toPreviewInput, type ReviewPageInput } from "@/lib/review-view";
 import {
   signAdminPhotoUrls,
   signPublicPhotoUrls,
@@ -272,4 +273,57 @@ export async function getReviewById(id: string) {
   const photos = data.photos ?? [];
   const urls = await signAdminPhotoUrls(photos.map((p) => p.photo_url));
   return { ...data, photos: withPhotoUrls(photos, urls) };
+}
+
+/**
+ * The admin draft preview's data: this review (any status), its cafe, and the cafe's
+ * published reviews, with only those reviews' items and photos. Admin client, called only
+ * from the authenticated preview page. Photos are signed fresh; unsignable ones are dropped.
+ */
+export async function getReviewPreview(
+  reviewId: string,
+): Promise<{ input: ReviewPageInput; leadVisitId: string } | null> {
+  const sb = createAdminClient();
+  const { data: review, error } = await sb
+    .from("reviews")
+    .select("*, author:profiles(display_name)")
+    .eq("id", reviewId)
+    .maybeSingle();
+  if (error) console.error("getReviewPreview: review query failed", error);
+  if (!review) return null;
+
+  const [cafeRes, publishedRes] = await Promise.all([
+    sb
+      .from("cafes")
+      .select("name, slug, neighborhood, address, vibe_tags, google_place_id")
+      .eq("id", review.cafe_id)
+      .maybeSingle(),
+    sb
+      .from("reviews")
+      .select("*, author:profiles(display_name)")
+      .eq("cafe_id", review.cafe_id)
+      .eq("status", "published"),
+  ]);
+  if (cafeRes.error) console.error("getReviewPreview: cafe query failed", cafeRes.error);
+  if (publishedRes.error) console.error("getReviewPreview: published query failed", publishedRes.error);
+  if (!cafeRes.data) return null;
+
+  const published = publishedRes.data ?? [];
+  const ids = [...new Set([review.id, ...published.map((r) => r.id)])];
+  const [itemsRes, photosRes] = await Promise.all([
+    sb.from("items").select("*").in("review_id", ids).order("created_at"),
+    sb.from("photos").select("*").in("review_id", ids).order("created_at"),
+  ]);
+  if (itemsRes.error) console.error("getReviewPreview: items query failed", itemsRes.error);
+  if (photosRes.error) console.error("getReviewPreview: photos query failed", photosRes.error);
+
+  const photos = photosRes.data ?? [];
+  const urls = await signAdminPhotoUrls(photos.map((p) => p.photo_url));
+  return toPreviewInput({
+    review,
+    cafe: cafeRes.data,
+    published,
+    items: itemsRes.data ?? [],
+    photos: withPhotoUrls(photos, urls),
+  });
 }

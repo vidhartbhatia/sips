@@ -66,6 +66,31 @@ ask her first.
   `publish-post` ("Review photos"): window light, a 3:2 landscape hero first, drinks 4:5 at
   about 45°, three or more photos. Don't submit or publish reviews for her without her OK.
 
+### Finishing and publishing a review
+
+The flow is **capture → edit → Preview → Publish**:
+
+1. **Capture** on her phone (`/admin/capture`). It always saves a private draft.
+2. **Edit** at `/admin/review/<id>/edit` (the admin dashboard links her drafts). Here she adds or
+   fixes drinks, attaches photos to drinks, picks the cover (the big photo at the top), and
+   writes the verdict and story.
+3. **Preview** (the link on the edit page, `/admin/review/<id>/preview`) shows the real review
+   page, exactly as visitors will see it. A banner at the top says it's a draft that only she
+   can see. Open it in the browser pane and show her both desktop and mobile.
+4. **Publish** from the edit page.
+
+What to tell her along the way:
+
+- **"Score every drink before publishing: Cortado"** means that drink has no score yet.
+  Drafts can leave scores empty; publishing needs an overall score and a 1–5 score on every
+  drink. The preview banner names the drinks that still need one.
+- **Alt text:** each photo has a caption field in the edit form. It's what screen readers
+  read and what shows if the image fails to load. One plain sentence ("Cortado on the window
+  ledge"). If she leaves it empty the site writes a generic one, so it's worth a few seconds.
+- **Unpublishing is safe.** It takes the review off the public site and back to a draft;
+  nothing is deleted. She can fix it and publish again.
+- Visitors only see published reviews, and a cafe only appears on the site once it has one.
+
 ## Shipping
 
 When she's happy with a change:
