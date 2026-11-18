@@ -62,7 +62,7 @@ export default function Header() {
         <Link href="/" className="group flex items-center gap-2.5">
           <Illustration
             slot="logo"
-            className="h-7 w-7 opacity-60 transition-transform group-hover:rotate-[-8deg]"
+            className="h-7 w-auto transition-transform group-hover:rotate-[-8deg]"
           />
           <span className="font-heading text-3xl text-espresso">
             Sips

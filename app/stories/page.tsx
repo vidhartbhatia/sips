@@ -20,7 +20,7 @@ export default async function StoriesPage() {
 
         {posts.length === 0 ? (
           <div className="mt-16 text-center">
-            <Illustration slot="empty" className="mx-auto mb-6 h-40 w-40 opacity-50" />
+            <Illustration slot="empty" className="mx-auto mb-6 h-40 w-auto" />
             <p className="font-heading text-2xl text-espresso-muted">No stories yet.</p>
           </div>
         ) : (

@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <Illustration slot="logo" className="h-[22px] w-[22px] opacity-50" />
+              <Illustration slot="logo" className="h-[22px] w-auto" />
               <h3 className="font-heading text-2xl text-espresso">Sips</h3>
             </div>
             <p className="mt-2 font-display text-lg italic text-espresso-muted">
