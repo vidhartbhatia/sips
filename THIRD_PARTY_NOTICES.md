@@ -19,7 +19,8 @@ The share-image routes (`lib/og.tsx`) draw text with static font files in
 [SIL Open Font License 1.1](https://openfontlicense.org) by its authors: Caveat (The Caveat
 Project Authors), Instrument Serif (The Instrument Serif Project Authors), IBM Plex Mono (IBM
 Corp.) and Plus Jakarta Sans (The Plus Jakarta Sans Project Authors). The site itself loads the
-same families through `next/font/google`.
+same families through `next/font/google`. The license text and each family's copyright notice
+ship with the files in [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt).
 
 ## MIT License text
 
